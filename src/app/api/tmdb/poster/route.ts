@@ -7,15 +7,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
-import { TMDB_API_KEY, TMDB_CACHE_DAYS } from '@/lib/env';
-import { getDb } from '@/lib/db';
-import { tmdbCache } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import axios, { AxiosError } from 'axios';
+import { TMDB_API_KEY } from '@/lib/env';
+import { getCachedTMDBResult, cacheTMDBResult } from '@/lib/db/queries';
 import type { TMDBSearchResult } from '@/lib/tmdb';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const REQUEST_TIMEOUT = 10000; // 10 seconds
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000; // Start with 1 second
 
 interface TMDBSearchResponse {
   page: number;
@@ -30,17 +30,67 @@ interface PosterRequest {
 }
 
 /**
- * Check if cached data is still valid
+ * Delay helper for retries
  */
-function isCacheValid(updatedAt: Date): boolean {
-  const cacheExpiryMs = TMDB_CACHE_DAYS * 24 * 60 * 60 * 1000;
-  const age = Date.now() - updatedAt.getTime();
-  return age < cacheExpiryMs;
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Fetch from TMDB with retry logic (exponential backoff)
+ */
+async function fetchFromTMDB(query: string, year?: number, retryCount = 0): Promise<TMDBSearchResult | null> {
+  const params = new URLSearchParams({
+    api_key: TMDB_API_KEY!,
+    language: 'en-US',
+    query: query.trim(),
+    page: '1',
+    include_adult: 'false',
+  });
+
+  if (year) {
+    params.append('year', year.toString());
+  }
+
+  try {
+    const response = await axios.get<TMDBSearchResponse>(
+      `${TMDB_BASE_URL}/search/multi?${params}`,
+      {
+        timeout: REQUEST_TIMEOUT,
+        headers: {
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    return response.data.results[0] || null;
+  } catch (error) {
+    const isAxiosError = axios.isAxiosError(error);
+    const isNetworkError = isAxiosError && 
+      (error.code === 'ECONNREFUSED' || 
+       error.code === 'ETIMEDOUT' || 
+       error.code === 'ENOTFOUND' ||
+       error.code === 'ECONNRESET');
+
+    // Retry on network errors
+    if (isNetworkError && retryCount < MAX_RETRIES) {
+      const delayTime = RETRY_DELAY_MS * Math.pow(2, retryCount); // Exponential backoff
+      console.log(`🔄 Retry ${retryCount + 1}/${MAX_RETRIES} for "${query}" after ${delayTime}ms (error: ${error.code})`);
+      await delay(delayTime);
+      return fetchFromTMDB(query, year, retryCount + 1);
+    }
+
+    // Log error and rethrow
+    if (isAxiosError) {
+      console.error(`❌ TMDB API error after ${retryCount} retries:`, {
+        query,
+        code: error.code,
+        message: error.message,
+      });
+    }
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const db = getDb();
-
   try {
     // Validate TMDB API key is configured
     if (!TMDB_API_KEY) {
@@ -66,148 +116,19 @@ export async function POST(request: NextRequest) {
     }
 
     const searchQuery = body.query.trim();
-    let shouldFetchFromTMDB = true;
-    let cachedResult: TMDBSearchResult | null = null;
 
-    // Try to get from cache first if database is configured
-    if (db) {
-      try {
-        // Search cache by title/name (we'll match the first result from TMDB search)
-        // Note: This is a simplified approach. For better caching, consider storing
-        // a hash of the search query or using a more sophisticated lookup
-        const response = await axios.get<TMDBSearchResponse>(
-          `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&language=en-US&query=${encodeURIComponent(searchQuery)}&page=1&include_adult=false${body.year ? `&year=${body.year}` : ''}`,
-          {
-            timeout: REQUEST_TIMEOUT,
-            headers: { 'Accept': 'application/json' },
-          }
-        );
-
-        const firstResult = response.data.results[0];
-        if (firstResult) {
-          // Check if we have this ID in cache
-          const cached = await db
-            .select()
-            .from(tmdbCache)
-            .where(eq(tmdbCache.id, firstResult.id))
-            .limit(1);
-
-          if (cached.length > 0 && isCacheValid(cached[0].updatedAt)) {
-            // Cache hit and still valid
-            cachedResult = {
-              id: cached[0].id,
-              title: cached[0].title || undefined,
-              name: cached[0].name || undefined,
-              poster_path: cached[0].posterPath || undefined,
-              backdrop_path: cached[0].backdropPath || undefined,
-              media_type: cached[0].mediaType || undefined,
-              release_date: cached[0].releaseDate || undefined,
-              first_air_date: cached[0].firstAirDate || undefined,
-              vote_average: cached[0].voteAverage || undefined,
-              vote_count: cached[0].voteCount || undefined,
-              popularity: cached[0].popularity || undefined,
-              overview: cached[0].overview || undefined,
-              original_language: cached[0].originalLanguage || undefined,
-              adult: cached[0].adult || undefined,
-            };
-            shouldFetchFromTMDB = false;
-            console.log(`Cache hit for TMDB ID ${firstResult.id} (age: ${Math.floor((Date.now() - cached[0].updatedAt.getTime()) / 1000 / 60 / 60 / 24)} days)`);
-          } else if (cached.length > 0) {
-            console.log(`Cache expired for TMDB ID ${firstResult.id}, refetching...`);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking cache:', error);
-        // Continue to fetch from TMDB on cache error
-      }
-    }
-
-    // If we have a valid cached result, return it
-    if (!shouldFetchFromTMDB && cachedResult) {
+    // Step 1: Check cache FIRST (without calling TMDB)
+    const cachedResult = await getCachedTMDBResult(searchQuery, body.year);
+    if (cachedResult) {
       return NextResponse.json(cachedResult, { status: 200 });
     }
 
-    // Build TMDB API request params
-    const params = new URLSearchParams({
-      api_key: TMDB_API_KEY,
-      language: 'en-US',
-      query: searchQuery,
-      page: '1',
-      include_adult: 'false',
-    });
+    // Step 2: Cache miss - fetch from TMDB with retry logic
+    const result = await fetchFromTMDB(searchQuery, body.year);
 
-    if (body.year) {
-      params.append('year', body.year.toString());
-    }
-
-    // Make request to TMDB API
-    const response = await axios.get<TMDBSearchResponse>(
-      `${TMDB_BASE_URL}/search/multi?${params}`,
-      {
-        timeout: REQUEST_TIMEOUT,
-        headers: {
-          'Accept': 'application/json',
-        },
-      }
-    );
-
-    // Get the first result (most relevant) or null
-    const result = response.data.results[0] || null;
-
-    // If database is configured and we have a result, cache it
-    if (db && result) {
-      try {
-        // Check if this ID already exists in cache
-        const existing = await db
-          .select()
-          .from(tmdbCache)
-          .where(eq(tmdbCache.id, result.id))
-          .limit(1);
-
-        if (existing.length > 0) {
-          // Update existing cache entry
-          await db
-            .update(tmdbCache)
-            .set({
-              title: result.title,
-              name: result.name,
-              posterPath: result.poster_path,
-              backdropPath: result.backdrop_path,
-              mediaType: result.media_type,
-              releaseDate: result.release_date,
-              firstAirDate: result.first_air_date,
-              voteAverage: result.vote_average,
-              voteCount: result.vote_count,
-              popularity: result.popularity,
-              overview: result.overview,
-              originalLanguage: result.original_language,
-              adult: result.adult,
-              updatedAt: new Date(),
-            })
-            .where(eq(tmdbCache.id, result.id));
-        } else {
-          // Insert new cache entry
-          await db.insert(tmdbCache).values({
-            id: result.id,
-            title: result.title,
-            name: result.name,
-            posterPath: result.poster_path,
-            backdropPath: result.backdrop_path,
-            mediaType: result.media_type,
-            releaseDate: result.release_date,
-            firstAirDate: result.first_air_date,
-            voteAverage: result.vote_average,
-            voteCount: result.vote_count,
-            popularity: result.popularity,
-            overview: result.overview,
-            originalLanguage: result.original_language,
-            adult: result.adult,
-          });
-        }
-      } catch (dbError) {
-        console.error('Error caching TMDB result:', dbError);
-        // Continue even if caching fails
-      }
+    // Step 3: Cache the result for future requests
+    if (result) {
+      await cacheTMDBResult(searchQuery, body.year, result);
     }
     
     return NextResponse.json(result, { status: 200 });

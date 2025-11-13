@@ -7,6 +7,8 @@ import { pgTable, text, timestamp, integer, real, boolean } from 'drizzle-orm/pg
 
 export const tmdbCache = pgTable('tmdb_cache', {
   id: integer('id').primaryKey(),
+  searchQuery: text('search_query').notNull(), // Store normalized search query for lookup
+  searchYear: integer('search_year'), // Optional year filter
   title: text('title'),
   name: text('name'),
   posterPath: text('poster_path'),
