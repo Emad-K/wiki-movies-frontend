@@ -3,10 +3,6 @@ import { Navigation } from "@/components/navigation"
 import { ChatInterface } from "@/components/chat-interface"
 import { Loader2 } from "lucide-react"
 
-function SearchContent() {
-  return <ChatInterface />
-}
-
 function SearchLoading() {
   return (
     <div className="flex items-center justify-center h-full">
@@ -21,7 +17,7 @@ export default function SearchPage() {
       <Navigation />
       <div className="flex-1 overflow-hidden">
         <Suspense fallback={<SearchLoading />}>
-          <SearchContent />
+          <ChatInterface />
         </Suspense>
       </div>
     </div>
