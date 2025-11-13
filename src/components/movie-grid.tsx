@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
-import { Calendar, Globe, Play, Plus } from "lucide-react"
+import { Calendar, Globe, Play, Plus, Star } from "lucide-react"
 import { SearchHit } from "@/lib/types/api"
-import { getMoviePosterUrl, DEFAULT_POSTER_URL } from "@/lib/tmdb"
+import { searchTMDB, getTMDBPosterUrl, DEFAULT_POSTER_URL, type TMDBSearchResult } from "@/lib/tmdb"
 
 interface MovieGridProps {
   movies: SearchHit[]
@@ -33,14 +33,19 @@ function MovieCard({ movie }: { movie: SearchHit }) {
   const [imageUrl, setImageUrl] = useState<string>(DEFAULT_POSTER_URL)
   const [isLoadingImage, setIsLoadingImage] = useState(true)
   const [showLeft, setShowLeft] = useState(false)
+  const [tmdbData, setTmdbData] = useState<TMDBSearchResult | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
 
   const plot = movie.fields?.plot || "No description available"
   const director = movie.fields?.director?.[0] || "Unknown"
   const year = movie.fields?.released_year
   const country = movie.fields?.country?.[0]
+  
+  // Get rating info from TMDB data
+  const rating = tmdbData?.vote_average ? tmdbData.vote_average.toFixed(1) : null
+  const voteCount = tmdbData?.vote_count
 
-  // Fetch TMDB poster image
+  // Fetch TMDB poster image and data
   useEffect(() => {
     let isMounted = true
 
@@ -52,14 +57,15 @@ function MovieCard({ movie }: { movie: SearchHit }) {
 
       try {
         setIsLoadingImage(true)
-        const posterUrl = await getMoviePosterUrl(movie.title, year)
+        const result = await searchTMDB(movie.title, year)
         
         if (isMounted) {
-          setImageUrl(posterUrl)
+          setTmdbData(result)
+          setImageUrl(getTMDBPosterUrl(result?.poster_path))
           setIsLoadingImage(false)
         }
       } catch (error) {
-        console.error('Error fetching TMDB poster:', error)
+        console.error('Error fetching TMDB data:', error)
         if (isMounted) {
           setImageUrl(DEFAULT_POSTER_URL)
           setIsLoadingImage(false)
@@ -167,6 +173,15 @@ function MovieCard({ movie }: { movie: SearchHit }) {
                           <span>{country}</span>
                         </div>
                       )}
+                      {rating && (
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                          <span className="font-medium">{rating}</span>
+                          {voteCount && (
+                            <span className="text-muted-foreground">({voteCount.toLocaleString()})</span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {director && (
@@ -216,7 +231,15 @@ function MovieCard({ movie }: { movie: SearchHit }) {
           )}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
             <h3 className="font-semibold text-sm text-white line-clamp-2">{movie.title}</h3>
-            {year && <p className="text-xs text-white/80">{year}</p>}
+            <div className="flex items-center gap-2 text-xs text-white/80 mt-1">
+              {year && <span>{year}</span>}
+              {rating && (
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                  <span>{rating}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         {showDetails && (
@@ -247,6 +270,15 @@ function MovieCard({ movie }: { movie: SearchHit }) {
                       <div className="flex items-center gap-1">
                         <Globe className="h-3 w-3" />
                         <span>{country}</span>
+                      </div>
+                    )}
+                    {rating && (
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                        <span className="font-medium">{rating}/10</span>
+                        {voteCount && (
+                          <span className="text-muted-foreground">({voteCount.toLocaleString()} votes)</span>
+                        )}
                       </div>
                     )}
                   </div>
