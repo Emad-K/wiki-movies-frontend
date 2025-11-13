@@ -15,8 +15,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CineMatch - Movie Recommendation",
-  description: "Discover and search for movies with CineMatch",
+  title: "Wiki Movies - AI-Powered Movie Search",
+  description: "Discover and search for movies with Wiki Movies - AI-powered semantic search, advanced filters, and comprehensive movie information",
+  openGraph: {
+    title: "Wiki Movies - AI-Powered Movie Search",
+    description: "Discover and search for movies with Wiki Movies - AI-powered semantic search, advanced filters, and comprehensive movie information",
+    siteName: "Wiki Movies",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wiki Movies - AI-Powered Movie Search",
+    description: "Discover and search for movies with Wiki Movies - AI-powered semantic search, advanced filters, and comprehensive movie information",
+  },
 };
 
 export default function RootLayout({

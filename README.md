@@ -1,4 +1,4 @@
-# Movie Recommendation App
+# Wiki Movies
 
 A modern, AI-powered movie search and recommendation application built with Next.js 16, featuring hybrid semantic search, advanced filtering with autocomplete, and TMDB poster integration.
 
