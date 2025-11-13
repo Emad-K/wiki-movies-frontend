@@ -64,16 +64,36 @@ async function fetchFromTMDB(query: string, year?: number, retryCount = 0): Prom
     return response.data.results[0] || null;
   } catch (error) {
     const isAxiosError = axios.isAxiosError(error);
+    
+    // Check if it's a client error that we shouldn't retry
+    const status = isAxiosError ? error.response?.status : null;
+    const isClientError = status && (
+      status === 401 || // Unauthorized
+      status === 403 || // Forbidden
+      status === 404 || // Not Found
+      status === 429    // Too Many Requests
+    );
+
+    // Don't retry on client errors
+    if (isClientError) {
+      console.error(`❌ TMDB API client error [${status}] for "${query}" - not retrying`);
+      throw error;
+    }
+
+    // Check if it's a network error or 5xx server error (retriable)
     const isNetworkError = isAxiosError && 
       (error.code === 'ECONNREFUSED' || 
        error.code === 'ETIMEDOUT' || 
        error.code === 'ENOTFOUND' ||
        error.code === 'ECONNRESET');
+    
+    const isServerError = status && status >= 500;
 
-    // Retry on network errors
-    if (isNetworkError && retryCount < MAX_RETRIES) {
+    // Retry on network errors or server errors
+    if ((isNetworkError || isServerError) && retryCount < MAX_RETRIES) {
       const delayTime = RETRY_DELAY_MS * Math.pow(2, retryCount); // Exponential backoff
-      console.log(`🔄 Retry ${retryCount + 1}/${MAX_RETRIES} for "${query}" after ${delayTime}ms (error: ${error.code})`);
+      const errorInfo = isNetworkError ? error.code : `HTTP ${status}`;
+      console.log(`🔄 Retry ${retryCount + 1}/${MAX_RETRIES} for "${query}" after ${delayTime}ms (${errorInfo})`);
       await delay(delayTime);
       return fetchFromTMDB(query, year, retryCount + 1);
     }
@@ -82,6 +102,7 @@ async function fetchFromTMDB(query: string, year?: number, retryCount = 0): Prom
     if (isAxiosError) {
       console.error(`❌ TMDB API error after ${retryCount} retries:`, {
         query,
+        status,
         code: error.code,
         message: error.message,
       });
@@ -134,57 +155,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 200 });
 
   } catch (error) {
-    // Handle axios errors with detailed logging
     if (axios.isAxiosError(error)) {
       const status = error.response?.status || 500;
+      const errorCode = error.code || 'UNKNOWN';
       
-      // Log comprehensive error details
-      console.error('=== TMDB API Error ===');
-      console.error('Status:', status);
-      console.error('Error Message:', error.message);
-      console.error('Request URL:', error.config?.url);
-      console.error('Request Method:', error.config?.method);
-      console.error('Request Params:', error.config?.params);
-      console.error('Response Data:', error.response?.data);
-      console.error('Response Headers:', error.response?.headers);
-      
-      if (error.code) {
-        console.error('Error Code:', error.code);
+      // Clean, readable error logging
+      console.error(`❌ TMDB API Error [${errorCode}] - ${error.message}`);
+      if (error.config?.url) {
+        console.error(`   URL: ${error.config.url}`);
       }
-      
-      console.error('Full Error Object:', JSON.stringify(error, null, 2));
-      console.error('======================');
+      if (error.response) {
+        console.error(`   Status: ${status} ${error.response.statusText || ''}`);
+      }
       
       return NextResponse.json(
         { 
-          error: error.response?.statusText || error.message || 'TMDB API request failed',
+          error: 'Failed to fetch from TMDB',
+          code: errorCode,
+          message: error.message,
           status,
-          details: {
-            responseData: error.response?.data,
-            errorCode: error.code,
-            requestUrl: error.config?.url,
-          },
         },
         { status }
       );
     }
 
     // Handle other errors
-    console.error('=== Non-Axios Error ===');
-    console.error('Error Type:', error?.constructor?.name);
-    console.error('Error Message:', error instanceof Error ? error.message : 'Unknown error');
-    console.error('Error Stack:', error instanceof Error ? error.stack : 'No stack trace');
-    console.error('Full Error:', error);
-    console.error('=======================');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`❌ TMDB Route Error: ${errorMessage}`);
     
     return NextResponse.json(
       { 
         error: 'Internal server error',
-        details: {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          type: error?.constructor?.name,
-          stack: error instanceof Error ? error.stack : undefined,
-        }
+        message: errorMessage,
       },
       { status: 500 }
     );
