@@ -6,7 +6,10 @@ A modern, AI-powered movie search and recommendation application built with Next
 
 - 🔍 **Hybrid Search**: AI-powered semantic search using embeddings + traditional text search
 - 🎯 **Smart Filters**: Real-time autocomplete on 17 different filter fields
-- 🖼️ **Movie Posters**: Automatic poster fetching from TMDB
+- 🖼️ **Movie Posters**: Automatic poster fetching from TMDB with ratings and vote counts
+- 📊 **Trending Movies**: Weekly trending movies and TV shows on the homepage
+- 🌓 **Dark/Light Mode**: System-aware theme with manual toggle
+- 💾 **Smart Caching**: Drizzle ORM with Neon database for efficient TMDB API caching
 - 📱 **Responsive Design**: Works beautifully on desktop, tablet, and mobile
 - ⚡ **Infinite Scroll**: Seamless loading of more results
 - 🔒 **Secure API Proxy**: All API keys kept server-side
@@ -19,7 +22,8 @@ A modern, AI-powered movie search and recommendation application built with Next
 - Node.js 18+ (or compatible runtime)
 - pnpm (recommended), npm, or yarn
 - Backend API URL and API key
-- TMDB API key (for poster images)
+- TMDB API key (for poster images and trending)
+- Neon PostgreSQL database (optional, for TMDB caching)
 
 ### Installation
 
@@ -42,18 +46,31 @@ A modern, AI-powered movie search and recommendation application built with Next
    BACKEND_BASE_URL=https://your-backend-api.com
    BACKEND_API_KEY=your-api-key-here
 
-   # TMDB API Configuration (for movie posters)
+   # TMDB API Configuration (for movie posters and trending)
    TMDB_API_KEY=your-tmdb-api-key-here
+
+   # Database Configuration (Optional - for TMDB caching)
+   DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
+   TMDB_CACHE_DAYS=7
    ```
 
    See [ENV_SETUP.md](./ENV_SETUP.md) for detailed setup instructions.
 
-4. **Run the development server**
+4. **Set up database (Optional)**
+   
+   If you want to enable TMDB caching:
+   ```bash
+   pnpm db:push
+   ```
+   
+   See [DATABASE_SETUP.md](./DATABASE_SETUP.md) for detailed database setup.
+
+5. **Run the development server**
    ```bash
    pnpm dev
    ```
 
-5. **Open your browser**
+6. **Open your browser**
    
    Navigate to [http://localhost:3000](http://localhost:3000)
 
@@ -61,6 +78,7 @@ A modern, AI-powered movie search and recommendation application built with Next
 
 - **[API Documentation](./API_DOCUMENTATION.md)** - Complete API endpoint reference
 - **[Environment Setup](./ENV_SETUP.md)** - Environment variable configuration
+- **[Database Setup](./DATABASE_SETUP.md)** - Drizzle ORM and Neon database configuration
 - **[Filter Autocomplete Guide](./FILTER_AUTOCOMPLETE_GUIDE.md)** - How to use the filter system
 - **[cURL Commands](./CURL_COMMANDS.md)** - Test APIs with cURL
 - **[Changelog](./CHANGELOG.md)** - Recent updates and changes
@@ -98,8 +116,11 @@ Available filters:
 
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
+- **Database**: Neon PostgreSQL (serverless)
+- **ORM**: Drizzle ORM
 - **Styling**: Tailwind CSS 4
 - **UI Components**: Radix UI
+- **Theme**: next-themes
 - **HTTP Client**: Axios
 - **Testing**: Vitest
 - **Package Manager**: pnpm
@@ -122,6 +143,10 @@ pnpm build         # Build for production
 pnpm start         # Start production server
 pnpm lint          # Run ESLint
 pnpm test          # Run tests
+pnpm db:push       # Push database schema to Neon
+pnpm db:studio     # Open Drizzle Studio
+pnpm db:generate   # Generate migrations
+pnpm db:migrate    # Run migrations
 ```
 
 ## 🔐 Security

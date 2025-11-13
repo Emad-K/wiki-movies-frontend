@@ -3,25 +3,19 @@
  * POST /api/tmdb/poster
  * 
  * Proxies TMDB poster search requests to keep API key secure
+ * Uses Neon database to cache results and reduce API calls
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import { TMDB_API_KEY } from '@/lib/env';
+import { TMDB_API_KEY, TMDB_CACHE_DAYS } from '@/lib/env';
+import { getDb } from '@/lib/db';
+import { tmdbCache } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
+import type { TMDBSearchResult } from '@/lib/tmdb';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const REQUEST_TIMEOUT = 10000; // 10 seconds
-
-interface TMDBSearchResult {
-  id: number;
-  title?: string;
-  name?: string;
-  poster_path?: string | null;
-  backdrop_path?: string | null;
-  media_type?: string;
-  release_date?: string;
-  first_air_date?: string;
-}
 
 interface TMDBSearchResponse {
   page: number;
@@ -35,7 +29,18 @@ interface PosterRequest {
   year?: number;
 }
 
+/**
+ * Check if cached data is still valid
+ */
+function isCacheValid(updatedAt: Date): boolean {
+  const cacheExpiryMs = TMDB_CACHE_DAYS * 24 * 60 * 60 * 1000;
+  const age = Date.now() - updatedAt.getTime();
+  return age < cacheExpiryMs;
+}
+
 export async function POST(request: NextRequest) {
+  const db = getDb();
+
   try {
     // Validate TMDB API key is configured
     if (!TMDB_API_KEY) {
@@ -60,11 +65,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const searchQuery = body.query.trim();
+    let shouldFetchFromTMDB = true;
+    let cachedResult: TMDBSearchResult | null = null;
+
+    // Try to get from cache first if database is configured
+    if (db) {
+      try {
+        // Search cache by title/name (we'll match the first result from TMDB search)
+        // Note: This is a simplified approach. For better caching, consider storing
+        // a hash of the search query or using a more sophisticated lookup
+        const response = await axios.get<TMDBSearchResponse>(
+          `${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&language=en-US&query=${encodeURIComponent(searchQuery)}&page=1&include_adult=false${body.year ? `&year=${body.year}` : ''}`,
+          {
+            timeout: REQUEST_TIMEOUT,
+            headers: { 'Accept': 'application/json' },
+          }
+        );
+
+        const firstResult = response.data.results[0];
+        if (firstResult) {
+          // Check if we have this ID in cache
+          const cached = await db
+            .select()
+            .from(tmdbCache)
+            .where(eq(tmdbCache.id, firstResult.id))
+            .limit(1);
+
+          if (cached.length > 0 && isCacheValid(cached[0].updatedAt)) {
+            // Cache hit and still valid
+            cachedResult = {
+              id: cached[0].id,
+              title: cached[0].title || undefined,
+              name: cached[0].name || undefined,
+              poster_path: cached[0].posterPath || undefined,
+              backdrop_path: cached[0].backdropPath || undefined,
+              media_type: cached[0].mediaType || undefined,
+              release_date: cached[0].releaseDate || undefined,
+              first_air_date: cached[0].firstAirDate || undefined,
+              vote_average: cached[0].voteAverage || undefined,
+              vote_count: cached[0].voteCount || undefined,
+              popularity: cached[0].popularity || undefined,
+              overview: cached[0].overview || undefined,
+              original_language: cached[0].originalLanguage || undefined,
+              adult: cached[0].adult || undefined,
+            };
+            shouldFetchFromTMDB = false;
+            console.log(`Cache hit for TMDB ID ${firstResult.id} (age: ${Math.floor((Date.now() - cached[0].updatedAt.getTime()) / 1000 / 60 / 60 / 24)} days)`);
+          } else if (cached.length > 0) {
+            console.log(`Cache expired for TMDB ID ${firstResult.id}, refetching...`);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking cache:', error);
+        // Continue to fetch from TMDB on cache error
+      }
+    }
+
+    // If we have a valid cached result, return it
+    if (!shouldFetchFromTMDB && cachedResult) {
+      return NextResponse.json(cachedResult, { status: 200 });
+    }
+
     // Build TMDB API request params
     const params = new URLSearchParams({
       api_key: TMDB_API_KEY,
       language: 'en-US',
-      query: body.query.trim(),
+      query: searchQuery,
       page: '1',
       include_adult: 'false',
     });
@@ -84,8 +151,64 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Return the first result (most relevant) or null
+    // Get the first result (most relevant) or null
     const result = response.data.results[0] || null;
+
+    // If database is configured and we have a result, cache it
+    if (db && result) {
+      try {
+        // Check if this ID already exists in cache
+        const existing = await db
+          .select()
+          .from(tmdbCache)
+          .where(eq(tmdbCache.id, result.id))
+          .limit(1);
+
+        if (existing.length > 0) {
+          // Update existing cache entry
+          await db
+            .update(tmdbCache)
+            .set({
+              title: result.title,
+              name: result.name,
+              posterPath: result.poster_path,
+              backdropPath: result.backdrop_path,
+              mediaType: result.media_type,
+              releaseDate: result.release_date,
+              firstAirDate: result.first_air_date,
+              voteAverage: result.vote_average,
+              voteCount: result.vote_count,
+              popularity: result.popularity,
+              overview: result.overview,
+              originalLanguage: result.original_language,
+              adult: result.adult,
+              updatedAt: new Date(),
+            })
+            .where(eq(tmdbCache.id, result.id));
+        } else {
+          // Insert new cache entry
+          await db.insert(tmdbCache).values({
+            id: result.id,
+            title: result.title,
+            name: result.name,
+            posterPath: result.poster_path,
+            backdropPath: result.backdrop_path,
+            mediaType: result.media_type,
+            releaseDate: result.release_date,
+            firstAirDate: result.first_air_date,
+            voteAverage: result.vote_average,
+            voteCount: result.vote_count,
+            popularity: result.popularity,
+            overview: result.overview,
+            originalLanguage: result.original_language,
+            adult: result.adult,
+          });
+        }
+      } catch (dbError) {
+        console.error('Error caching TMDB result:', dbError);
+        // Continue even if caching fails
+      }
+    }
     
     return NextResponse.json(result, { status: 200 });
 

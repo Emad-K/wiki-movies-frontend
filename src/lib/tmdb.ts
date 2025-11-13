@@ -9,7 +9,7 @@ const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
 // Default placeholder image when no poster is available
 export const DEFAULT_POSTER_URL = 'https://placehold.co/500x750/1a1a1a/gray?text=No+Poster'
 
-interface TMDBSearchResult {
+export interface TMDBSearchResult {
   id: number
   title?: string
   name?: string
@@ -18,6 +18,12 @@ interface TMDBSearchResult {
   media_type?: string
   release_date?: string
   first_air_date?: string
+  vote_average?: number
+  vote_count?: number
+  popularity?: number
+  overview?: string
+  original_language?: string
+  adult?: boolean
 }
 
 /**
