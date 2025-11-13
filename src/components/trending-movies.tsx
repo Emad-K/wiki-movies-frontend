@@ -115,7 +115,7 @@ function TrendingMovieCard({ movie }: { movie: TMDBTrendingMovie }) {
           />
           {/* Media Type Badge - Always Visible */}
           <div className="absolute top-2 right-2 z-10">
-            <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-purple-600 text-white">
+            <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-foreground text-background">
               {movie.media_type === 'movie' ? 'Movie' : 'TV'}
             </span>
           </div>
@@ -160,7 +160,7 @@ function TrendingMovieCard({ movie }: { movie: TMDBTrendingMovie }) {
           />
           {/* Media Type Badge - Always Visible */}
           <div className="absolute top-2 right-2">
-            <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-purple-600 text-white">
+            <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-foreground text-background">
               {movie.media_type === 'movie' ? 'Movie' : 'TV'}
             </span>
           </div>

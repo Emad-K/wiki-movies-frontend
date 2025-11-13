@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { Film, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Navigation() {
   return (
@@ -13,13 +14,14 @@ export function Navigation() {
           <span className="font-bold text-xl">Wiki Movies</span>
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Link href="/search">
             <Button variant="ghost" size="sm" className="gap-2">
               <Search className="h-4 w-4" />
               <span className="hidden sm:inline">Search</span>
             </Button>
           </Link>
+          <ThemeToggle />
         </div>
       </div>
     </nav>
