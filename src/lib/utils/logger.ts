@@ -3,9 +3,9 @@
  * Supports different log levels for cleaner console output
  */
 
-type LogLevel = 'debug' | 'info' | 'error';
+import { env } from '@/lib/env';
 
-const LOG_LEVEL = (process.env.LOG_LEVEL || 'info') as LogLevel;
+type LogLevel = 'debug' | 'info' | 'error';
 
 const LOG_LEVELS: Record<LogLevel, number> = {
   debug: 0,
@@ -17,7 +17,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
  * Log debug messages (only in debug mode)
  */
 export function logDebug(...args: any[]) {
-  if (LOG_LEVELS[LOG_LEVEL] <= LOG_LEVELS.debug) {
+  if (LOG_LEVELS[env.LOG_LEVEL] <= LOG_LEVELS.debug) {
     console.log(...args);
   }
 }
@@ -26,7 +26,7 @@ export function logDebug(...args: any[]) {
  * Log info messages (in debug and info modes)
  */
 export function logInfo(...args: any[]) {
-  if (LOG_LEVELS[LOG_LEVEL] <= LOG_LEVELS.info) {
+  if (LOG_LEVELS[env.LOG_LEVEL] <= LOG_LEVELS.info) {
     console.log(...args);
   }
 }
@@ -37,7 +37,7 @@ export function logInfo(...args: any[]) {
  * In info/error modes, shows clean one-liners
  */
 export function logError(message: string, details?: any) {
-  if (LOG_LEVELS[LOG_LEVEL] === LOG_LEVELS.debug && details) {
+  if (LOG_LEVELS[env.LOG_LEVEL] === LOG_LEVELS.debug && details) {
     console.error(message, details);
   } else {
     console.error(message);
@@ -48,7 +48,7 @@ export function logError(message: string, details?: any) {
  * Log warning messages
  */
 export function logWarn(...args: any[]) {
-  if (LOG_LEVELS[LOG_LEVEL] <= LOG_LEVELS.info) {
+  if (LOG_LEVELS[env.LOG_LEVEL] <= LOG_LEVELS.info) {
     console.warn(...args);
   }
 }

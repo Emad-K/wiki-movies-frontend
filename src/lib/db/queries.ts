@@ -5,7 +5,7 @@
 import { getDb } from './index';
 import { tmdbCache } from './schema';
 import { and, eq, sql } from 'drizzle-orm';
-import { TMDB_CACHE_DAYS } from '@/lib/env';
+import { env } from '@/lib/env';
 
 /**
  * Normalize search query for consistent cache lookups
@@ -18,7 +18,7 @@ function normalizeQuery(query: string): string {
  * Check if cached data is still valid
  */
 function isCacheValid(updatedAt: Date): boolean {
-  const cacheExpiryMs = TMDB_CACHE_DAYS * 24 * 60 * 60 * 1000;
+  const cacheExpiryMs = env.TMDB_CACHE_DAYS * 24 * 60 * 60 * 1000;
   const age = Date.now() - updatedAt.getTime();
   return age < cacheExpiryMs;
 }

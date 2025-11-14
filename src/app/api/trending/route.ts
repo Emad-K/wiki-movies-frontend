@@ -8,7 +8,7 @@
 
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-import { TMDB_API_KEY, TMDB_TIMEOUT } from '@/lib/env';
+import { env } from '@/lib/env';
 import { tryAsync } from '@/lib/utils/async';
 import { logError } from '@/lib/utils/logger';
 import { TMDBTrendingResponse } from '@/lib/types/api';
@@ -18,19 +18,14 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 export const revalidate = 86400; // Cache for 24 hours (86400 seconds)
 
 export async function GET() {
-  if (!TMDB_API_KEY) {
-    logError('TMDB_API_KEY not configured');
-    return NextResponse.json({ error: 'TMDB API not configured' }, { status: 500 });
-  }
-
   const params = new URLSearchParams({
-    api_key: TMDB_API_KEY,
+    api_key: env.TMDB_API_KEY,
     language: 'en-US',
   });
 
   const [response, error] = await tryAsync(
     axios.get<TMDBTrendingResponse>(`${TMDB_BASE_URL}/trending/all/week?${params}`, {
-      timeout: TMDB_TIMEOUT,
+      timeout: env.TMDB_TIMEOUT,
       headers: { 'Accept': 'application/json' },
     })
   );

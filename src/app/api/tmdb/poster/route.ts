@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { setTimeout } from 'timers/promises';
 import axios from 'axios';
-import { TMDB_API_KEY, TMDB_TIMEOUT, TMDB_MAX_RETRIES, TMDB_RETRY_DELAY } from '@/lib/env';
+import { env } from '@/lib/env';
 import { getCachedTMDBResult, cacheTMDBResult } from '@/lib/db/queries';
 import { tryAsync } from '@/lib/utils/async';
 import { logDebug, logError } from '@/lib/utils/logger';
@@ -34,7 +34,7 @@ interface PosterRequest {
  */
 async function fetchFromTMDB(query: string, year?: number, retryCount = 0): Promise<TMDBSearchResult | null> {
   const params = new URLSearchParams({
-    api_key: TMDB_API_KEY!,
+    api_key: env.TMDB_API_KEY,
     language: 'en-US',
     query: query.trim(),
     page: '1',
@@ -47,7 +47,7 @@ async function fetchFromTMDB(query: string, year?: number, retryCount = 0): Prom
 
   const [response, error] = await tryAsync(
     axios.get<TMDBSearchResponse>(`${TMDB_BASE_URL}/search/multi?${params}`, {
-      timeout: TMDB_TIMEOUT,
+      timeout: env.TMDB_TIMEOUT,
       headers: { 'Accept': 'application/json' },
     })
   );
@@ -72,10 +72,10 @@ async function fetchFromTMDB(query: string, year?: number, retryCount = 0): Prom
     const isNetworkError = isAxiosError && ['ECONNREFUSED', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNRESET'].includes(errorCode || '');
     const isServerError = status && status >= 500;
 
-    if ((isNetworkError || isServerError) && retryCount < TMDB_MAX_RETRIES) {
-      const delayMs = TMDB_RETRY_DELAY * Math.pow(2, retryCount);
+    if ((isNetworkError || isServerError) && retryCount < env.TMDB_MAX_RETRIES) {
+      const delayMs = env.TMDB_RETRY_DELAY * Math.pow(2, retryCount);
       const errorInfo = isNetworkError ? errorCode : `HTTP ${status}`;
-      logDebug(`🔄 Retry ${retryCount + 1}/${TMDB_MAX_RETRIES} for "${query}" after ${delayMs}ms (${errorInfo})`);
+      logDebug(`🔄 Retry ${retryCount + 1}/${env.TMDB_MAX_RETRIES} for "${query}" after ${delayMs}ms (${errorInfo})`);
       await setTimeout(delayMs);
       return fetchFromTMDB(query, year, retryCount + 1);
     }
@@ -88,11 +88,6 @@ async function fetchFromTMDB(query: string, year?: number, retryCount = 0): Prom
 }
 
 export async function POST(request: NextRequest) {
-  if (!TMDB_API_KEY) {
-    logError('TMDB_API_KEY not configured');
-    return NextResponse.json({ error: 'TMDB API not configured' }, { status: 500 });
-  }
-
   // Parse and validate request
   const [body, parseError] = await tryAsync(request.json() as Promise<PosterRequest>);
   if (parseError || !body?.query?.trim()) {

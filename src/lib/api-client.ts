@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { BACKEND_BASE_URL, BACKEND_API_KEY } from './env';
+import { env } from './env';
 
 // Global timeout constant (10 seconds)
 export const API_TIMEOUT = 10000;
@@ -14,7 +14,7 @@ export const API_TIMEOUT = 10000;
  */
 export const createApiClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: BACKEND_BASE_URL,
+    baseURL: env.BACKEND_BASE_URL,
     timeout: API_TIMEOUT,
     headers: {
       'Content-Type': 'application/json',
@@ -22,7 +22,7 @@ export const createApiClient = (): AxiosInstance => {
   });
 
   // Set Authorization header separately to ensure it's properly set
-  client.defaults.headers.common['Authorization'] = `Bearer ${BACKEND_API_KEY}`;
+  client.defaults.headers.common['Authorization'] = `Bearer ${env.BACKEND_API_KEY}`;
 
   // Request interceptor for logging (optional)
   client.interceptors.request.use(
