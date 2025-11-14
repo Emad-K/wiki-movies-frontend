@@ -9,6 +9,9 @@ import { env } from './env';
 // Global timeout constant (10 seconds)
 export const API_TIMEOUT = 10000;
 
+// Search API timeout constant (100 seconds for complex searches)
+export const SEARCH_API_TIMEOUT = 100000;
+
 /**
  * Create and configure axios instance for backend API calls
  */

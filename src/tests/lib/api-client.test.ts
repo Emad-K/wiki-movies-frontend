@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createApiClient, API_TIMEOUT } from '@/lib/api-client';
+import { createApiClient, API_TIMEOUT, SEARCH_API_TIMEOUT } from '@/lib/api-client';
 import { BACKEND_BASE_URL, BACKEND_API_KEY } from '@/lib/env';
 
 describe('API Client', () => {
@@ -24,6 +24,10 @@ describe('API Client', () => {
 
   it('should have correct timeout value', () => {
     expect(API_TIMEOUT).toBe(10000);
+  });
+
+  it('should have correct search API timeout value', () => {
+    expect(SEARCH_API_TIMEOUT).toBe(100000);
   });
 
   it('should include Authorization header with Bearer token', () => {

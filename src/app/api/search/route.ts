@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, SEARCH_API_TIMEOUT } from '@/lib/api-client';
 import { SearchRequest, SearchResponse, BackendSearchResponse, APIError } from '@/lib/types/api';
 import { tryAsync } from '@/lib/utils/async';
 import { logError } from '@/lib/utils/logger';
@@ -25,9 +25,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Make request to backend
+  // Make request to backend with extended timeout for search
   const [response, error] = await tryAsync(
-    apiClient.post<BackendSearchResponse>('/search', body)
+    apiClient.post<BackendSearchResponse>('/search', body, {
+      timeout: SEARCH_API_TIMEOUT
+    })
   );
 
   if (error || !response) {
