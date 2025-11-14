@@ -60,30 +60,37 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
     router.replace(`/search?${params.toString()}`, { scroll: false })
   }
 
-  const handleSearch = async (query: string, offset: number = 0, append: boolean = false) => {
+  const handleSearch = async (query: string, offset: number = 0, append: boolean = false, replace: boolean = false) => {
     if (!query.trim()) return
 
     // Prevent duplicate searches - if a search for this query is already in progress, skip
     const searchKey = `${query}-${offset}-${JSON.stringify(filters)}`
-    if (!append && activeSearchRef.current === searchKey) {
+    if (!append && !replace && activeSearchRef.current === searchKey) {
       console.log('Skipping duplicate search:', searchKey)
       return
     }
 
-    // For new searches, add user message and reset state
-    if (!append) {
+    // For new searches, clear previous results and add user message
+    if (!append && !replace) {
       activeSearchRef.current = searchKey
       const userMessage: Message = {
         id: Date.now().toString(),
         type: "user",
         content: query,
       }
-      setMessages((prev) => [...prev, userMessage])
+      // Clear all previous messages and start fresh with new search
+      setMessages([userMessage])
       setInput("")
       setIsLoading(true)
       setCurrentOffset(0)
       setHasMore(true)
       setCurrentQuery(query)
+    } else if (replace) {
+      // For filter changes, just set loading state
+      activeSearchRef.current = searchKey
+      setIsLoading(true)
+      setCurrentOffset(0)
+      setHasMore(true)
     } else {
       setIsLoadingMore(true)
     }
@@ -125,7 +132,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
       }
 
       if (append) {
-        // Append to existing movies
+        // Append to existing movies (infinite scroll)
         setMessages((prev) => {
           const lastMessage = prev[prev.length - 1]
           if (lastMessage && lastMessage.movies) {
@@ -139,8 +146,25 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
         })
         setCurrentOffset(offset + 20)
         setHasMore(data.hits && data.hits.length === 20)
+      } else if (replace) {
+        // Replace existing results (filter changes)
+        setMessages((prev) => {
+          const lastMessage = prev[prev.length - 1]
+          if (lastMessage && lastMessage.type === "assistant" && lastMessage.movies) {
+            // Replace the last assistant message with new results
+            const updatedMessage: Message = {
+              ...lastMessage,
+              content: `Found ${data.total || 0} movies matching "${query}"`,
+              movies: data.hits || [],
+            }
+            return [...prev.slice(0, -1), updatedMessage]
+          }
+          return prev
+        })
+        setCurrentOffset(20)
+        setHasMore(data.hits && data.hits.length === 20)
       } else {
-        // New search results
+        // New search results (new query)
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: "assistant",
@@ -154,8 +178,8 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
     } catch (error) {
       console.error("Search error:", error)
       
-      // Only show error message for new searches, not pagination
-      if (!append) {
+      // Show error message for new searches, not pagination or replace
+      if (!append && !replace) {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: "assistant",
@@ -164,6 +188,9 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
             : "Sorry, there was an error searching for movies. Please try again.",
         }
         setMessages((prev) => [...prev, errorMessage])
+      } else if (replace) {
+        // For filter changes, show error in console but don't add new message
+        console.error("Filter search error:", error)
       }
     } finally {
       setIsLoading(false)
@@ -217,7 +244,8 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
     
     if (currentQuery) {
       updateUrlParams(currentQuery, filters)
-      handleSearch(currentQuery)
+      // Use replace mode to update existing results instead of adding new messages
+      handleSearch(currentQuery, 0, false, true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters])
