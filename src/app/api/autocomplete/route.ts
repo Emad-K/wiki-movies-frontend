@@ -35,15 +35,16 @@ export async function POST(request: NextRequest) {
     apiClient.post<BackendAutocompleteResponse>('/autocomplete', body)
   );
 
-  if (error) {
+  if (error || !response) {
     const status = axios.isAxiosError(error) ? (error.response?.status || 500) : 500;
     const code = axios.isAxiosError(error) ? error.code : 'UNKNOWN';
+    const message = error?.message || 'No response from backend';
     
-    logError(`❌ Backend Autocomplete [${code || status}] - ${error.message}`);
+    logError(`❌ Backend Autocomplete [${code || status}] - ${message}`);
     
     const errorData: APIError = {
       error: axios.isAxiosError(error) 
-        ? (error.response?.data?.detail || error.message || 'Request failed')
+        ? (error.response?.data?.detail || message || 'Request failed')
         : 'Internal server error',
       status,
       details: {
