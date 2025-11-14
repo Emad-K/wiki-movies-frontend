@@ -3,12 +3,13 @@
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Send, SlidersHorizontal, Menu, X } from "lucide-react"
+import { Send, SlidersHorizontal, Menu, X, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MovieGrid } from "@/components/movie-grid"
 import { FilterPanel } from "@/components/filter-panel"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import type { SearchHit } from "@/lib/types/api"
 
@@ -44,6 +45,28 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  // Helper function to format filter names nicely
+  const formatFilterName = (key: string): string => {
+    // Convert camelCase or snake_case to readable format
+    return key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/_/g, ' ')
+      .trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  // Get active filters as a formatted string
+  const getActiveFiltersText = (): string => {
+    const activeFilters = Object.entries(filters).filter(([_, value]) => value)
+    if (activeFilters.length === 0) return ''
+    
+    return activeFilters
+      .map(([key, value]) => `${formatFilterName(key)}: ${value}`)
+      .join(', ')
   }
 
   // Update URL with query and filters
@@ -306,6 +329,11 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
                   )}
                 >
                   <p className="text-sm">{message.content}</p>
+                  {message.type === "assistant" && getActiveFiltersText() && (
+                    <p className="text-xs mt-2 opacity-80">
+                      Filters: {getActiveFiltersText()}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -386,29 +414,52 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
           </div>
         ) : (
           <div className="p-4 md:p-6">
-            {messages
-              .filter((m) => m.movies && m.movies.length > 0)
-              .map((message) => (
-                <div key={message.id} className="mb-8">
-                  <h3 className="text-base md:text-lg font-semibold mb-4">{message.content}</h3>
-                  <MovieGrid movies={message.movies || []} />
-                </div>
-              ))}
-            
-            {/* Infinite scroll trigger */}
-            {currentQuery && (
-              <div ref={scrollObserverRef} className="h-20 flex items-center justify-center">
-                {isLoadingMore && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                    <span className="text-sm">Loading more movies...</span>
+            <TooltipProvider>
+              {messages
+                .filter((m) => m.movies && m.movies.length > 0)
+                .map((message) => (
+                  <div key={message.id} className="mb-8">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h3 className="text-base md:text-lg font-semibold">{message.content}</h3>
+                      {getActiveFiltersText() && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-sm">
+                              <p className="font-semibold mb-1">Active Filters:</p>
+                              {Object.entries(filters)
+                                .filter(([_, value]) => value)
+                                .map(([key, value]) => (
+                                  <p key={key} className="text-xs">
+                                    {formatFilterName(key)}: {value}
+                                  </p>
+                                ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <MovieGrid movies={message.movies || []} />
                   </div>
-                )}
-                {!hasMore && messages.some(m => m.movies && m.movies.length > 0) && (
-                  <p className="text-sm text-muted-foreground">That's all the results!</p>
-                )}
-              </div>
-            )}
+                ))}
+              
+              {/* Infinite scroll trigger */}
+              {currentQuery && (
+                <div ref={scrollObserverRef} className="h-20 flex items-center justify-center">
+                  {isLoadingMore && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                      <span className="text-sm">Loading more movies...</span>
+                    </div>
+                  )}
+                  {!hasMore && messages.some(m => m.movies && m.movies.length > 0) && (
+                    <p className="text-sm text-muted-foreground">That's all the results!</p>
+                  )}
+                </div>
+              )}
+            </TooltipProvider>
           </div>
         )}
       </div>
