@@ -10,6 +10,9 @@ interface EnvConfig {
   TMDB_API_KEY: string | undefined;
   DATABASE_URL: string | undefined;
   TMDB_CACHE_DAYS: number;
+  TMDB_TIMEOUT: number;
+  TMDB_MAX_RETRIES: number;
+  TMDB_RETRY_DELAY: number;
 }
 
 function validateEnv(): EnvConfig {
@@ -33,14 +36,45 @@ function validateEnv(): EnvConfig {
     );
   }
 
-  // Parse TMDB_CACHE_DAYS with default value of 7 days
+  // Parse numeric environment variables with defaults
   const cacheDays = process.env.TMDB_CACHE_DAYS
     ? parseInt(process.env.TMDB_CACHE_DAYS, 10)
     : 7;
 
+  const tmdbTimeout = process.env.TMDB_TIMEOUT
+    ? parseInt(process.env.TMDB_TIMEOUT, 10)
+    : 10000; // 10 seconds
+
+  const tmdbMaxRetries = process.env.TMDB_MAX_RETRIES
+    ? parseInt(process.env.TMDB_MAX_RETRIES, 10)
+    : 2;
+
+  const tmdbRetryDelay = process.env.TMDB_RETRY_DELAY
+    ? parseInt(process.env.TMDB_RETRY_DELAY, 10)
+    : 1000; // 1 second
+
+  // Validate numeric values
   if (isNaN(cacheDays) || cacheDays < 1) {
     throw new Error(
       `TMDB_CACHE_DAYS must be a positive number. Got: ${process.env.TMDB_CACHE_DAYS}`
+    );
+  }
+
+  if (isNaN(tmdbTimeout) || tmdbTimeout < 1000) {
+    throw new Error(
+      `TMDB_TIMEOUT must be at least 1000ms. Got: ${process.env.TMDB_TIMEOUT}`
+    );
+  }
+
+  if (isNaN(tmdbMaxRetries) || tmdbMaxRetries < 0) {
+    throw new Error(
+      `TMDB_MAX_RETRIES must be a non-negative number. Got: ${process.env.TMDB_MAX_RETRIES}`
+    );
+  }
+
+  if (isNaN(tmdbRetryDelay) || tmdbRetryDelay < 0) {
+    throw new Error(
+      `TMDB_RETRY_DELAY must be a non-negative number. Got: ${process.env.TMDB_RETRY_DELAY}`
     );
   }
 
@@ -49,6 +83,9 @@ function validateEnv(): EnvConfig {
     TMDB_API_KEY: process.env.TMDB_API_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
     TMDB_CACHE_DAYS: cacheDays,
+    TMDB_TIMEOUT: tmdbTimeout,
+    TMDB_MAX_RETRIES: tmdbMaxRetries,
+    TMDB_RETRY_DELAY: tmdbRetryDelay,
   } as EnvConfig;
 }
 
@@ -62,4 +99,7 @@ export const BACKEND_API_KEY = env.BACKEND_API_KEY;
 export const TMDB_API_KEY = env.TMDB_API_KEY;
 export const DATABASE_URL = env.DATABASE_URL;
 export const TMDB_CACHE_DAYS = env.TMDB_CACHE_DAYS;
+export const TMDB_TIMEOUT = env.TMDB_TIMEOUT;
+export const TMDB_MAX_RETRIES = env.TMDB_MAX_RETRIES;
+export const TMDB_RETRY_DELAY = env.TMDB_RETRY_DELAY;
 
