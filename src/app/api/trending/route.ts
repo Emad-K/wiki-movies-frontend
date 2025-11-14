@@ -30,14 +30,15 @@ export async function GET() {
     })
   );
 
-  if (error) {
+  if (error || !response) {
     const status = axios.isAxiosError(error) ? (error.response?.status || 500) : 500;
     const code = axios.isAxiosError(error) ? error.code : 'UNKNOWN';
+    const message = error?.message || 'No response from TMDB';
     
-    logError(`❌ TMDB Trending [${code || status}] - ${error.message}`);
+    logError(`❌ TMDB Trending [${code || status}] - ${message}`);
     
     return NextResponse.json(
-      { error: 'Failed to fetch trending', code, message: error.message },
+      { error: 'Failed to fetch trending', code, message },
       { status }
     );
   }
