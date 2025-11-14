@@ -39,6 +39,8 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollObserverRef = useRef<HTMLDivElement>(null)
+  const hasInitialized = useRef(false)
+  const activeSearchRef = useRef<string | null>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -61,8 +63,16 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
   const handleSearch = async (query: string, offset: number = 0, append: boolean = false) => {
     if (!query.trim()) return
 
+    // Prevent duplicate searches - if a search for this query is already in progress, skip
+    const searchKey = `${query}-${offset}-${JSON.stringify(filters)}`
+    if (!append && activeSearchRef.current === searchKey) {
+      console.log('Skipping duplicate search:', searchKey)
+      return
+    }
+
     // For new searches, add user message and reset state
     if (!append) {
+      activeSearchRef.current = searchKey
       const userMessage: Message = {
         id: Date.now().toString(),
         type: "user",
@@ -158,6 +168,10 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
     } finally {
       setIsLoading(false)
       setIsLoadingMore(false)
+      // Clear active search ref to allow new searches
+      if (!append) {
+        activeSearchRef.current = null
+      }
     }
   }
 
@@ -167,6 +181,12 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
 
   // Initialize from URL params
   useEffect(() => {
+    // Prevent double initialization in React Strict Mode
+    if (hasInitialized.current) {
+      return
+    }
+    hasInitialized.current = true
+    
     const queryFromUrl = searchParams.get('q')
     const filtersFromUrl: Record<string, string> = {}
     
@@ -177,6 +197,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
       }
     })
     
+    // Set filters first, but mark that we're initializing so the filters useEffect won't trigger a search
     setFilters(filtersFromUrl)
     
     if (queryFromUrl) {
@@ -189,6 +210,11 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
 
   // Re-run search when filters change (if there's an active query)
   useEffect(() => {
+    // Skip if we haven't initialized yet (filters are being set during initialization)
+    if (!hasInitialized.current) {
+      return
+    }
+    
     if (currentQuery) {
       updateUrlParams(currentQuery, filters)
       handleSearch(currentQuery)
