@@ -1,7 +1,7 @@
 "use client"
 
 import { Navigation } from "@/components/navigation"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Search, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MovieGrid } from "@/components/movie-grid"
@@ -12,13 +12,42 @@ export default function DiscoverPage() {
   const [searchResults, setSearchResults] = useState<SearchHit[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [currentOffset, setCurrentOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const scrollObserverRef = useRef<HTMLDivElement>(null)
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!query.trim()) return
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!hasSearched || !hasMore || isLoadingMore) return
 
-    setIsLoading(true)
-    setHasSearched(true)
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMoreResults()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentRef = scrollObserverRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [hasSearched, currentOffset, hasMore, isLoadingMore])
+
+  const performSearch = async (searchQuery: string, offset: number = 0, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true)
+    } else {
+      setIsLoading(true)
+    }
 
     try {
       const response = await fetch("/api/search", {
@@ -27,9 +56,9 @@ export default function DiscoverPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          value: query.trim(),
-          size: 50,
-          offset: 0,
+          value: searchQuery.trim(),
+          size: 20,
+          offset: offset,
           mode: "multifield_hybrid_search",
         }),
       })
@@ -39,12 +68,40 @@ export default function DiscoverPage() {
       }
 
       const data = await response.json()
-      setSearchResults(data.hits || [])
+      const newMovies = data.hits || []
+      
+      if (append) {
+        setSearchResults((prev) => [...prev, ...newMovies])
+      } else {
+        setSearchResults(newMovies)
+      }
+      
+      setHasMore(newMovies.length === 20)
+      setCurrentOffset(offset + 20)
     } catch (error) {
       console.error("Error searching movies:", error)
-      setSearchResults([])
+      if (!append) {
+        setSearchResults([])
+      }
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!query.trim()) return
+
+    setHasSearched(true)
+    setCurrentOffset(0)
+    setHasMore(false)
+    await performSearch(query, 0, false)
+  }
+
+  const loadMoreResults = () => {
+    if (query.trim() && hasMore && !isLoadingMore) {
+      performSearch(query, currentOffset, true)
     }
   }
 
@@ -96,15 +153,23 @@ export default function DiscoverPage() {
           ) : hasSearched ? (
             searchResults.length > 0 ? (
               <>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl md:text-2xl font-semibold">
-                    Search Results
-                  </h2>
-                  <span className="text-sm text-muted-foreground">
-                    {searchResults.length} movies
-                  </span>
-                </div>
+                <h2 className="text-xl md:text-2xl font-semibold mb-6">
+                  Search Results
+                </h2>
                 <MovieGrid movies={searchResults} />
+                
+                {/* Infinite scroll trigger */}
+                <div ref={scrollObserverRef} className="h-20 flex items-center justify-center mt-8">
+                  {isLoadingMore && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span className="text-sm">Loading more movies...</span>
+                    </div>
+                  )}
+                  {!hasMore && !isLoadingMore && searchResults.length > 0 && (
+                    <p className="text-sm text-muted-foreground">That's all the results!</p>
+                  )}
+                </div>
               </>
             ) : (
               <div className="text-center py-20">
