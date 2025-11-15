@@ -22,6 +22,7 @@ export function Navigation() {
   const navLinks = [
     { href: "/search", icon: Search, label: "Search" },
     { href: "/similar", icon: Sparkles, label: "Similar" },
+    { href: "/discover", icon: Film, label: "Discover" },
   ]
 
   return (

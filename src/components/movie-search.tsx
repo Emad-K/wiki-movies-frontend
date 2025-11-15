@@ -15,13 +15,19 @@ interface AutocompleteSuggestion {
   released_year: number | null
 }
 
-export function SimilaritySearch() {
+interface MovieSearchProps {
+  mode: "similarity_search" | "multifield_hybrid_search"
+  title: string
+  description: string
+}
+
+export function MovieSearch({ mode, title, description }: MovieSearchProps) {
   const [inputValue, setInputValue] = useState("")
   const [selectedMovie, setSelectedMovie] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([])
   const [isLoadingAutocomplete, setIsLoadingAutocomplete] = useState(false)
-  const [isLoadingSimilar, setIsLoadingSimilar] = useState(false)
-  const [similarMovies, setSimilarMovies] = useState<SearchHit[]>([])
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false)
+  const [searchResults, setSearchResults] = useState<SearchHit[]>([])
   const [trendingMovies, setTrendingMovies] = useState<SearchHit[]>([])
   const [isLoadingTrending, setIsLoadingTrending] = useState(true)
   const [currentOffset, setCurrentOffset] = useState(0)
@@ -50,7 +56,7 @@ export function SimilaritySearch() {
         setSelectedMovie(selectedItem.value)
         setCurrentOffset(0)
         setHasMore(false)
-        fetchSimilarMovies(selectedItem.value, 0, false)
+        performSearch(selectedItem.value, 0, false)
       }
     },
   })
@@ -76,14 +82,14 @@ export function SimilaritySearch() {
     return () => clearTimeout(timer)
   }, [inputValue])
 
-  // Infinite scroll observer for similar movies
+  // Infinite scroll observer
   useEffect(() => {
     if (!selectedMovie || !hasMore || isLoadingMore) return
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-          fetchSimilarMovies(selectedMovie, currentOffset, true)
+          performSearch(selectedMovie, currentOffset, true)
         }
       },
       { threshold: 0.1 }
@@ -147,11 +153,11 @@ export function SimilaritySearch() {
     }
   }
 
-  const fetchSimilarMovies = async (movieTitle: string, offset: number = 0, append: boolean = false) => {
+  const performSearch = async (movieTitle: string, offset: number = 0, append: boolean = false) => {
     if (append) {
       setIsLoadingMore(true)
     } else {
-      setIsLoadingSimilar(true)
+      setIsLoadingSearch(true)
     }
 
     try {
@@ -164,33 +170,33 @@ export function SimilaritySearch() {
           value: movieTitle,
           size: 20,
           offset: offset,
-          mode: "multifield_hybrid_search",
+          mode: mode,
         }),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to fetch similar movies")
+        throw new Error("Failed to search movies")
       }
 
       const data = await response.json()
       const newMovies = data.hits || []
       
       if (append) {
-        setSimilarMovies((prev) => [...prev, ...newMovies])
+        setSearchResults((prev) => [...prev, ...newMovies])
       } else {
-        setSimilarMovies(newMovies)
+        setSearchResults(newMovies)
       }
       
       // Check if there are more movies to load
       setHasMore(newMovies.length === 20)
       setCurrentOffset(offset + 20)
     } catch (error) {
-      console.error("Error fetching similar movies:", error)
+      console.error("Error searching movies:", error)
       if (!append) {
-        setSimilarMovies([])
+        setSearchResults([])
       }
     } finally {
-      setIsLoadingSimilar(false)
+      setIsLoadingSearch(false)
       setIsLoadingMore(false)
     }
   }
@@ -198,26 +204,26 @@ export function SimilaritySearch() {
   const handleClear = () => {
     reset()
     setSelectedMovie(null)
-    setSimilarMovies([])
+    setSearchResults([])
     setSuggestions([])
     setCurrentOffset(0)
     setHasMore(false)
   }
 
-  const moviesToDisplay = selectedMovie ? similarMovies : trendingMovies
-  const isLoading = selectedMovie ? isLoadingSimilar : isLoadingTrending
+  const moviesToDisplay = selectedMovie ? searchResults : trendingMovies
+  const isLoading = selectedMovie ? isLoadingSearch : isLoadingTrending
 
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-3">
-          {selectedMovie ? "Similar Movies" : "Find Similar Movies"}
+          {selectedMovie ? title : `Find ${title}`}
         </h1>
         <p className="text-muted-foreground text-sm md:text-base">
           {selectedMovie
-            ? `Movies similar to "${selectedMovie}"`
-            : "Search for a movie to discover similar titles"}
+            ? `${description} "${selectedMovie}"`
+            : "Search for a movie to discover more"}
         </p>
       </div>
 
@@ -299,7 +305,7 @@ export function SimilaritySearch() {
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
               <p className="text-muted-foreground">
-                {selectedMovie ? "Finding similar movies..." : "Loading trending movies..."}
+                {selectedMovie ? "Searching movies..." : "Loading trending movies..."}
               </p>
             </div>
           </div>
@@ -307,7 +313,7 @@ export function SimilaritySearch() {
           <>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl md:text-2xl font-semibold">
-                {selectedMovie ? "Similar Movies" : "Trending Movies"}
+                {selectedMovie ? title : "Trending Movies"}
               </h2>
               <span className="text-sm text-muted-foreground">
                 {moviesToDisplay.length} movies
@@ -315,17 +321,17 @@ export function SimilaritySearch() {
             </div>
             <MovieGrid movies={moviesToDisplay} />
             
-            {/* Infinite scroll trigger for similar movies */}
+            {/* Infinite scroll trigger */}
             {selectedMovie && (
               <div ref={scrollObserverRef} className="h-20 flex items-center justify-center mt-8">
                 {isLoadingMore && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    <span className="text-sm">Loading more similar movies...</span>
+                    <span className="text-sm">Loading more movies...</span>
                   </div>
                 )}
-                {!hasMore && !isLoadingMore && similarMovies.length > 0 && (
-                  <p className="text-sm text-muted-foreground">That's all the similar movies!</p>
+                {!hasMore && !isLoadingMore && searchResults.length > 0 && (
+                  <p className="text-sm text-muted-foreground">That's all the results!</p>
                 )}
               </div>
             )}
@@ -334,7 +340,7 @@ export function SimilaritySearch() {
           <div className="text-center py-20">
             <p className="text-muted-foreground">
               {selectedMovie
-                ? "No similar movies found. Try searching for another movie."
+                ? "No movies found. Try searching for another movie."
                 : "No trending movies available."}
             </p>
           </div>
