@@ -1,7 +1,8 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Film, Search } from "lucide-react"
+import Link from "next/link"
+import { Film, Search, Sparkles, ArrowRight } from "lucide-react"
 import { TrendingMovies } from "@/components/trending-movies"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -59,6 +60,53 @@ export default function Home() {
           <p className="text-sm text-muted-foreground">
             Use semantic search to find movies by plot, themes, or any details
           </p>
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="py-12 px-4 border-b border-border">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Link
+              href="/search"
+              className="group p-6 rounded-lg border border-border bg-card hover:bg-muted/50 transition-all hover:shadow-md"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-primary/10 text-primary">
+                  <Search className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    Semantic Search
+                    <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Search movies by plot, themes, characters, or any description. Our AI understands what you're looking for.
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              href="/similar"
+              className="group p-6 rounded-lg border border-border bg-card hover:bg-muted/50 transition-all hover:shadow-md"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-primary/10 text-primary">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                    Find Similar Movies
+                    <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Discover movies similar to your favorites. Get recommendations based on plot, style, and themes.
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </div>
         </div>
       </div>
 
