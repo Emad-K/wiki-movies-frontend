@@ -7,8 +7,10 @@ import { motion, useMotionValue } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { getTMDBBackdropUrl, getTMDBPosterUrl } from "@/lib/tmdb"
-import { Loader2, Calendar, Clock, Star, DollarSign, Globe, Film } from "lucide-react"
+import { Star, Calendar, Clock, DollarSign, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { ExpandableText } from "@/components/expandable-text"
+import { WatchProvider } from "@/components/watch-provider"
 
 interface MovieDetails {
     id: number
@@ -35,6 +37,16 @@ interface MovieDetails {
     }
     videos?: {
         results: { id: string; key: string; name: string; type: string; site: string }[]
+    }
+    "watch/providers"?: {
+        results: {
+            [key: string]: {
+                link: string
+                flatrate?: { provider_id: number; provider_name: string; logo_path: string }[]
+                rent?: { provider_id: number; provider_name: string; logo_path: string }[]
+                buy?: { provider_id: number; provider_name: string; logo_path: string }[]
+            }
+        }
     }
 }
 
@@ -209,6 +221,14 @@ export default function MovieDetailPage() {
                                                     </span>
                                                 ))}
                                             </div>
+
+                                            {/* Action Row */}
+                                            <div className="pt-2 flex flex-wrap gap-4">
+                                                <WatchProvider
+                                                    providers={movie["watch/providers"]}
+                                                    homepage={movie.homepage}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -222,9 +242,7 @@ export default function MovieDetailPage() {
                     {/* Overview */}
                     <section>
                         <h2 className="text-2xl font-bold mb-4">Overview</h2>
-                        <p className="text-lg text-muted-foreground leading-relaxed">
-                            {movie.overview}
-                        </p>
+                        <ExpandableText text={movie.overview} />
                     </section>
 
                     {/* Key Information Grid */}
@@ -244,29 +262,28 @@ export default function MovieDetailPage() {
                         )}
 
                         {movie.budget > 0 && (
-                            <div>
-                                <h3 className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
-                                    <DollarSign className="h-4 w-4" />
+                            <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                                    <DollarSign className="h-4 w-4 text-green-500" />
                                     Budget
                                 </h3>
-                                <p className="text-lg">${movie.budget.toLocaleString()}</p>
+                                <p className="text-2xl font-bold tracking-tight">${movie.budget.toLocaleString()}</p>
                             </div>
                         )}
 
                         {movie.revenue > 0 && (
-                            <div>
-                                <h3 className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
-                                    <DollarSign className="h-4 w-4" />
+                            <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                                    <DollarSign className="h-4 w-4 text-green-500" />
                                     Revenue
                                 </h3>
-                                <p className="text-lg">${movie.revenue.toLocaleString()}</p>
+                                <p className="text-2xl font-bold tracking-tight">${movie.revenue.toLocaleString()}</p>
                             </div>
                         )}
 
                         {movie.production_countries.length > 0 && (
                             <div>
-                                <h3 className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
-                                    <Globe className="h-4 w-4" />
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-1">
                                     Countries
                                 </h3>
                                 <p className="text-lg">{movie.production_countries.map(c => c.name).join(', ')}</p>
@@ -284,8 +301,7 @@ export default function MovieDetailPage() {
                     {/* Production Companies */}
                     {movie.production_companies.length > 0 && (
                         <section>
-                            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                                <Film className="h-6 w-6" />
+                            <h2 className="text-2xl font-bold mb-4">
                                 Production Companies
                             </h2>
                             <div className="flex flex-wrap gap-6">
@@ -345,35 +361,22 @@ export default function MovieDetailPage() {
                     {/* Trailer */}
                     {trailer && (
                         <section>
-                            <h2 className="text-2xl font-bold mb-4">Trailer</h2>
-                            <div className="aspect-video w-full max-w-3xl">
+                            <h2 className="text-2xl font-bold mb-6">Official Trailer</h2>
+                            <div className="relative aspect-video w-full mx-auto rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black">
                                 <iframe
                                     src={`https://www.youtube.com/embed/${trailer.key}`}
                                     title={trailer.name}
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
-                                    className="w-full h-full rounded-lg"
+                                    className="absolute inset-0 w-full h-full"
                                 />
                             </div>
                         </section>
                     )}
 
-                    {/* External Links */}
-                    {movie.homepage && (
-                        <section>
-                            <a
-                                href={movie.homepage}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 text-primary hover:underline"
-                            >
-                                <Globe className="h-4 w-4" />
-                                Official Website
-                            </a>
-                        </section>
-                    )}
-                </div>
-            </ScrollArea>
-        </div>
+
+                </div >
+            </ScrollArea >
+        </div >
     )
 }

@@ -7,8 +7,10 @@ import { motion, useMotionValue } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { getTMDBBackdropUrl, getTMDBPosterUrl } from "@/lib/tmdb"
-import { Loader2, Calendar, Clock, Star, Tv, Globe } from "lucide-react"
+import { Loader2, Calendar, Clock, Star, Tv } from "lucide-react"
 import Link from "next/link"
+import { ExpandableText } from "@/components/expandable-text"
+import { WatchProvider } from "@/components/watch-provider"
 
 interface TVShowDetails {
     id: number
@@ -38,6 +40,16 @@ interface TVShowDetails {
     }
     videos?: {
         results: { id: string; key: string; name: string; type: string; site: string }[]
+    }
+    "watch/providers"?: {
+        results: {
+            [key: string]: {
+                link: string
+                flatrate?: { provider_id: number; provider_name: string; logo_path: string }[]
+                rent?: { provider_id: number; provider_name: string; logo_path: string }[]
+                buy?: { provider_id: number; provider_name: string; logo_path: string }[]
+            }
+        }
     }
 }
 
@@ -214,11 +226,19 @@ export default function TVShowDetailPage() {
                                                 {show.genres.map(genre => (
                                                     <span
                                                         key={genre.id}
-                                                        className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm text-white border border-white/30"
+                                                        className="px-3 py-1 rounded-full bg-white/10 text-sm backdrop-blur-sm border border-white/10"
                                                     >
                                                         {genre.name}
                                                     </span>
                                                 ))}
+                                            </div>
+
+                                            {/* Action Row */}
+                                            <div className="pt-2 flex flex-wrap gap-4">
+                                                <WatchProvider
+                                                    providers={show["watch/providers"]}
+                                                    homepage={show.homepage}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -233,9 +253,7 @@ export default function TVShowDetailPage() {
                     {/* Overview */}
                     <section>
                         <h2 className="text-2xl font-bold mb-4">Overview</h2>
-                        <p className="text-lg text-muted-foreground leading-relaxed">
-                            {show.overview}
-                        </p>
+                        <ExpandableText text={show.overview} />
                     </section>
 
                     {/* Key Information Grid */}
@@ -270,8 +288,7 @@ export default function TVShowDetailPage() {
 
                         {show.production_countries.length > 0 && (
                             <div>
-                                <h3 className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
-                                    <Globe className="h-4 w-4" />
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-1">
                                     Countries
                                 </h3>
                                 <p className="text-lg">{show.production_countries.map(c => c.name).join(', ')}</p>
@@ -285,32 +302,6 @@ export default function TVShowDetailPage() {
                             </div>
                         )}
                     </section>
-
-                    {/* Networks */}
-                    {show.networks.length > 0 && (
-                        <section>
-                            <h2 className="text-2xl font-bold mb-4">Networks</h2>
-                            <div className="flex flex-wrap gap-6">
-                                {show.networks.map(network => (
-                                    <div key={network.id} className="flex items-center gap-3">
-                                        {network.logo_path ? (
-                                            <div className="relative h-8 w-32">
-                                                <Image
-                                                    src={`https://image.tmdb.org/t/p/w200${network.logo_path}`}
-                                                    alt={network.name}
-                                                    fill
-                                                    className="object-contain object-left"
-                                                    sizes="128px"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground">{network.name}</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    )}
 
                     {/* Cast */}
                     {show.credits && show.credits.cast.length > 0 && (
@@ -347,33 +338,20 @@ export default function TVShowDetailPage() {
                     {/* Trailer */}
                     {trailer && (
                         <section>
-                            <h2 className="text-2xl font-bold mb-4">Trailer</h2>
-                            <div className="aspect-video w-full max-w-3xl">
+                            <h2 className="text-2xl font-bold mb-6">Official Trailer</h2>
+                            <div className="relative aspect-video w-full mx-auto rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black">
                                 <iframe
                                     src={`https://www.youtube.com/embed/${trailer.key}`}
                                     title={trailer.name}
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
-                                    className="w-full h-full rounded-lg"
+                                    className="absolute inset-0 w-full h-full"
                                 />
                             </div>
                         </section>
                     )}
 
-                    {/* External Links */}
-                    {show.homepage && (
-                        <section>
-                            <a
-                                href={show.homepage}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 text-primary hover:underline"
-                            >
-                                <Globe className="h-4 w-4" />
-                                Official Website
-                            </a>
-                        </section>
-                    )}
+
                 </div>
             </ScrollArea>
         </div>
