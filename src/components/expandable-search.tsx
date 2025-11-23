@@ -20,6 +20,7 @@ export function ExpandableSearch({
 }: ExpandableSearchProps) {
     const [isOpen, setIsOpen] = React.useState(false)
     const [query, setQuery] = React.useState(initialQuery)
+    const [lastSearchedQuery, setLastSearchedQuery] = React.useState("")
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
     // Focus textarea when opening
@@ -54,9 +55,15 @@ export function ExpandableSearch({
     const handleSubmit = (e?: React.FormEvent) => {
         e?.preventDefault()
         if (query.trim()) {
+            setLastSearchedQuery(query.trim())
             onSearch(query)
             setIsOpen(false)
         }
+    }
+
+    const handleClose = () => {
+        setLastSearchedQuery(query.trim())
+        setIsOpen(false)
     }
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -65,7 +72,7 @@ export function ExpandableSearch({
             handleSubmit()
         }
         if (e.key === "Escape") {
-            setIsOpen(false)
+            handleClose()
         }
     }
 
@@ -75,15 +82,19 @@ export function ExpandableSearch({
             <motion.div
                 layoutId="search-container"
                 className={cn(
-                    "relative mx-auto w-fit z-40",
+                    "relative mx-auto w-full sm:w-fit z-40",
                     className
                 )}
                 onClick={() => setIsOpen(true)}
             >
                 <div className="flex items-center gap-3 px-4 py-3 bg-background border border-input rounded-full shadow-sm cursor-pointer hover:bg-accent/50 transition-colors group">
                     <Search className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    <span className="text-muted-foreground font-medium pr-10 group-hover:text-foreground transition-colors">
-                        Describe what you&apos;re looking for...
+                    <span className="text-muted-foreground font-medium min-w-96 group-hover:text-foreground transition-colors">
+                        {lastSearchedQuery
+                            ? lastSearchedQuery.length > 40
+                                ? `${lastSearchedQuery.slice(0, 40)} ...`
+                                : lastSearchedQuery
+                            : "Describe what you're looking for ..."}
                     </span>
                 </div>
             </motion.div>
@@ -97,7 +108,7 @@ export function ExpandableSearch({
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setIsOpen(false)}
+                            onClick={handleClose}
                             className="absolute inset-0 bg-background/60 backdrop-blur-sm"
                         />
 
@@ -114,7 +125,7 @@ export function ExpandableSearch({
                                     <span className="text-sm font-medium">Search</span>
                                 </div>
                                 <button
-                                    onClick={() => setIsOpen(false)}
+                                    onClick={handleClose}
                                     className="p-2 hover:bg-accent rounded-full text-muted-foreground transition-colors"
                                 >
                                     <X className="h-5 w-5" />
