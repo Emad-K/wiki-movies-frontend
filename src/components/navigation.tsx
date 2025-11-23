@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Film, Search, Sparkles, Menu, X } from "lucide-react"
+import { Film, Menu, X } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -19,10 +19,8 @@ export function Navigation() {
     return pathname.startsWith(path)
   }
 
-  const navLinks = [
-    { href: "/search", icon: Search, label: "Search" },
-    { href: "/similar", icon: Sparkles, label: "Similar" },
-    { href: "/discover", icon: Film, label: "Discover" },
+  const navLinks: { href: string; icon: React.ElementType; label: string }[] = [
+    // { href: "/discover", icon: Film, label: "Discover" },
   ]
 
   return (
@@ -56,7 +54,7 @@ export function Navigation() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          
+
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"

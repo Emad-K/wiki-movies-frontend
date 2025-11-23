@@ -23,27 +23,43 @@ export async function GET() {
     language: 'en-US',
   });
 
-  const [response, error] = await tryAsync(
-    axios.get<TMDBTrendingResponse>(`${TMDB_BASE_URL}/trending/all/week?${params}`, {
-      timeout: env.TMDB_TIMEOUT,
-      headers: { 'Accept': 'application/json' },
-    })
+  // Fetch page 1 and 2 in parallel to get at least 24 items
+  const [results, error] = await tryAsync(
+    Promise.all([
+      axios.get<TMDBTrendingResponse>(`${TMDB_BASE_URL}/trending/all/week?${params}&page=1`, {
+        timeout: env.TMDB_TIMEOUT,
+        headers: { 'Accept': 'application/json' },
+      }),
+      axios.get<TMDBTrendingResponse>(`${TMDB_BASE_URL}/trending/all/week?${params}&page=2`, {
+        timeout: env.TMDB_TIMEOUT,
+        headers: { 'Accept': 'application/json' },
+      })
+    ])
   );
 
-  if (error || !response) {
+  if (error || !results) {
     const status = axios.isAxiosError(error) ? (error.response?.status || 500) : 500;
     const code = axios.isAxiosError(error) ? error.code : 'UNKNOWN';
     const message = error?.message || 'No response from TMDB';
-    
+
     logError(`❌ TMDB Trending [${code || status}] - ${message}`);
-    
+
     return NextResponse.json(
       { error: 'Failed to fetch trending', code, message },
       { status }
     );
   }
 
-  return NextResponse.json(response.data, { 
+  // Combine results from both pages
+  const allResults = [
+    ...(results[0].data.results || []),
+    ...(results[1].data.results || [])
+  ];
+
+  // Return top 24 items
+  const top24 = allResults.slice(0, 24);
+
+  return NextResponse.json({ results: top24 }, {
     status: 200,
     headers: {
       'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=43200',

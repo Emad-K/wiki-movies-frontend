@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { TMDBTrendingMovie } from "@/lib/types/api"
-import { getTMDBPosterUrl, DEFAULT_POSTER_URL } from "@/lib/tmdb"
+import { getTMDBPosterUrl } from "@/lib/tmdb"
 import { Calendar, Star, TrendingUp } from "lucide-react"
 
 export function TrendingMovies() {
@@ -15,7 +15,7 @@ export function TrendingMovies() {
       try {
         setIsLoading(true)
         const response = await fetch('/api/trending')
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch trending movies')
         }
@@ -81,7 +81,7 @@ export function TrendingMovies() {
           <h2 className="text-2xl font-bold">Trending This Week</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {movies.slice(0, 18).map((movie) => (
+          {movies.slice(0, 24).map((movie) => (
             <TrendingMovieCard key={movie.id} movie={movie} />
           ))}
         </div>
@@ -148,8 +148,8 @@ function TrendingMovieCard({ movie }: { movie: TMDBTrendingMovie }) {
 
       {/* Mobile: Click to show details */}
       <div className="md:hidden">
-        <div 
-          className="relative rounded-lg overflow-hidden cursor-pointer" 
+        <div
+          className="relative rounded-lg overflow-hidden cursor-pointer"
           onClick={() => setShowDetails(true)}
         >
           <img
