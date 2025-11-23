@@ -215,7 +215,7 @@ export default function MovieDetailPage() {
                                                 {movie.genres.map(genre => (
                                                     <span
                                                         key={genre.id}
-                                                        className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm text-white border border-white/30"
+                                                        className="px-3 py-1 bg-white/12 backdrop-blur-sm rounded-full text-sm text-white border border-white/30"
                                                     >
                                                         {genre.name}
                                                     </span>

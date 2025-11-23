@@ -226,7 +226,7 @@ export default function TVShowDetailPage() {
                                                 {show.genres.map(genre => (
                                                     <span
                                                         key={genre.id}
-                                                        className="px-3 py-1 rounded-full bg-white/10 text-sm backdrop-blur-sm border border-white/10"
+                                                        className="px-3 py-1 rounded-full bg-white/20 dark:bg-black/20 text-white dark:text-white text-sm backdrop-blur-sm border border-white/20 dark:border-white/20"
                                                     >
                                                         {genre.name}
                                                     </span>
