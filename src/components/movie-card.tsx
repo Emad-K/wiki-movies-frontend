@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { getTMDBPosterUrl, getTMDBBackdropUrl } from "@/lib/tmdb"
 import { TMDB_GENRES } from "@/lib/tmdb-genres"
 
@@ -72,9 +73,13 @@ export function MovieCard({ movie }: MovieCardProps) {
         setIsHovered(false)
     }
 
+    // Determine the correct route based on media type
+    const detailRoute = movie.media_type === 'tv' ? `/tv/${movie.id}` : `/movie/${movie.id}`
+
     return (
-        <div
-            className="relative group"
+        <Link
+            href={detailRoute}
+            className="relative group block"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
@@ -148,6 +153,6 @@ export function MovieCard({ movie }: MovieCardProps) {
                     </div>
                 </div>
             )}
-        </div>
+        </Link>
     )
 }

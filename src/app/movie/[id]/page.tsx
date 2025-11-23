@@ -1,0 +1,334 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
+import { Navigation } from "@/components/navigation"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { getTMDBBackdropUrl, getTMDBPosterUrl } from "@/lib/tmdb"
+import { Loader2, Calendar, Clock, Star, DollarSign, Globe, Film } from "lucide-react"
+import Link from "next/link"
+
+interface MovieDetails {
+    id: number
+    title: string
+    tagline?: string
+    overview: string
+    backdrop_path: string | null
+    poster_path: string | null
+    release_date: string
+    runtime: number
+    vote_average: number
+    vote_count: number
+    budget: number
+    revenue: number
+    genres: { id: number; name: string }[]
+    production_companies: { id: number; name: string; logo_path: string | null }[]
+    production_countries: { iso_3166_1: string; name: string }[]
+    spoken_languages: { iso_639_1: string; name: string }[]
+    status: string
+    homepage?: string
+    credits?: {
+        cast: { id: number; name: string; character: string; profile_path: string | null }[]
+        crew: { id: number; name: string; job: string; department: string }[]
+    }
+    videos?: {
+        results: { id: string; key: string; name: string; type: string; site: string }[]
+    }
+}
+
+export default function MovieDetailPage() {
+    const params = useParams()
+    const [movie, setMovie] = useState<MovieDetails | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        const fetchMovie = async () => {
+            try {
+                setIsLoading(true)
+                const response = await fetch(`/api/tmdb/movie/${params.id}`)
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch movie details')
+                }
+
+                const data = await response.json()
+                setMovie(data)
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'An error occurred')
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        if (params.id) {
+            fetchMovie()
+        }
+    }, [params.id])
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col h-screen">
+                <Navigation />
+                <div className="flex-1 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+            </div>
+        )
+    }
+
+    if (error || !movie) {
+        return (
+            <div className="flex flex-col h-screen">
+                <Navigation />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <p className="text-muted-foreground mb-4">{error || 'Movie not found'}</p>
+                        <Link href="/" className="text-primary hover:underline">
+                            Go back home
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    const backdropUrl = getTMDBBackdropUrl(movie.backdrop_path, 'original')
+    const posterUrl = getTMDBPosterUrl(movie.poster_path, 'w500')
+    const director = movie.credits?.crew.find(person => person.job === 'Director')
+    const trailer = movie.videos?.results.find(video => video.type === 'Trailer' && video.site === 'YouTube')
+
+    return (
+        <div className="flex flex-col h-screen">
+            <Navigation />
+            <ScrollArea className="flex-1 h-0">
+                {/* Hero Banner */}
+                <div className="relative w-full h-[60vh] min-h-[400px] max-h-[600px]">
+                    {/* Backdrop Image */}
+                    <div className="absolute inset-0">
+                        {movie.backdrop_path && (
+                            <img
+                                src={backdropUrl}
+                                alt={movie.title}
+                                className="w-full h-full object-cover"
+                            />
+                        )}
+                        {/* Gradient Overlays */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/40" />
+                    </div>
+
+                    {/* Content Over Banner */}
+                    <div className="relative h-full container mx-auto px-4 flex items-end pb-8">
+                        <div className="flex gap-6 items-end max-w-5xl">
+                            {/* Poster */}
+                            <div className="hidden md:block flex-shrink-0">
+                                <img
+                                    src={posterUrl}
+                                    alt={movie.title}
+                                    className="w-48 rounded-lg shadow-2xl"
+                                />
+                            </div>
+
+                            {/* Title and Meta */}
+                            <div className="flex-1 space-y-3 pb-2">
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-lg">
+                                    {movie.title}
+                                </h1>
+
+                                {movie.tagline && (
+                                    <p className="text-lg md:text-xl text-white/80 italic drop-shadow">
+                                        &ldquo;{movie.tagline}&rdquo;
+                                    </p>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-white/90">
+                                    {movie.release_date && (
+                                        <div className="flex items-center gap-1.5">
+                                            <Calendar className="h-4 w-4" />
+                                            <span>{new Date(movie.release_date).getFullYear()}</span>
+                                        </div>
+                                    )}
+
+                                    {movie.runtime > 0 && (
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="h-4 w-4" />
+                                            <span>{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</span>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center gap-1.5">
+                                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                        <span className="font-semibold">{movie.vote_average.toFixed(1)}</span>
+                                        <span className="text-white/60">({movie.vote_count.toLocaleString()} votes)</span>
+                                    </div>
+                                </div>
+
+                                {/* Genres */}
+                                <div className="flex flex-wrap gap-2">
+                                    {movie.genres.map(genre => (
+                                        <span
+                                            key={genre.id}
+                                            className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm text-white border border-white/30"
+                                        >
+                                            {genre.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Content */}
+                <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl">
+                    {/* Overview */}
+                    <section>
+                        <h2 className="text-2xl font-bold mb-4">Overview</h2>
+                        <p className="text-lg text-muted-foreground leading-relaxed">
+                            {movie.overview}
+                        </p>
+                    </section>
+
+                    {/* Key Information Grid */}
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {director && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-1">Director</h3>
+                                <p className="text-lg">{director.name}</p>
+                            </div>
+                        )}
+
+                        {movie.status && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-1">Status</h3>
+                                <p className="text-lg">{movie.status}</p>
+                            </div>
+                        )}
+
+                        {movie.budget > 0 && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
+                                    <DollarSign className="h-4 w-4" />
+                                    Budget
+                                </h3>
+                                <p className="text-lg">${movie.budget.toLocaleString()}</p>
+                            </div>
+                        )}
+
+                        {movie.revenue > 0 && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
+                                    <DollarSign className="h-4 w-4" />
+                                    Revenue
+                                </h3>
+                                <p className="text-lg">${movie.revenue.toLocaleString()}</p>
+                            </div>
+                        )}
+
+                        {movie.production_countries.length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-1 flex items-center gap-1.5">
+                                    <Globe className="h-4 w-4" />
+                                    Countries
+                                </h3>
+                                <p className="text-lg">{movie.production_countries.map(c => c.name).join(', ')}</p>
+                            </div>
+                        )}
+
+                        {movie.spoken_languages.length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-muted-foreground mb-1">Languages</h3>
+                                <p className="text-lg">{movie.spoken_languages.map(l => l.name).join(', ')}</p>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Production Companies */}
+                    {movie.production_companies.length > 0 && (
+                        <section>
+                            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                                <Film className="h-6 w-6" />
+                                Production Companies
+                            </h2>
+                            <div className="flex flex-wrap gap-6">
+                                {movie.production_companies.map(company => (
+                                    <div key={company.id} className="flex items-center gap-3">
+                                        {company.logo_path ? (
+                                            <img
+                                                src={`https://image.tmdb.org/t/p/w200${company.logo_path}`}
+                                                alt={company.name}
+                                                className="h-8 object-contain"
+                                            />
+                                        ) : (
+                                            <span className="text-muted-foreground">{company.name}</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Cast */}
+                    {movie.credits && movie.credits.cast.length > 0 && (
+                        <section>
+                            <h2 className="text-2xl font-bold mb-4">Cast</h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                {movie.credits.cast.slice(0, 10).map(person => (
+                                    <div key={person.id} className="space-y-2">
+                                        {person.profile_path ? (
+                                            <img
+                                                src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
+                                                alt={person.name}
+                                                className="w-full aspect-[2/3] object-cover rounded-lg"
+                                            />
+                                        ) : (
+                                            <div className="w-full aspect-[2/3] bg-muted rounded-lg flex items-center justify-center">
+                                                <span className="text-muted-foreground text-xs">No Image</span>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="font-semibold text-sm">{person.name}</p>
+                                            <p className="text-xs text-muted-foreground">{person.character}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Trailer */}
+                    {trailer && (
+                        <section>
+                            <h2 className="text-2xl font-bold mb-4">Trailer</h2>
+                            <div className="aspect-video w-full max-w-3xl">
+                                <iframe
+                                    src={`https://www.youtube.com/embed/${trailer.key}`}
+                                    title={trailer.name}
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                    className="w-full h-full rounded-lg"
+                                />
+                            </div>
+                        </section>
+                    )}
+
+                    {/* External Links */}
+                    {movie.homepage && (
+                        <section>
+                            <a
+                                href={movie.homepage}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-primary hover:underline"
+                            >
+                                <Globe className="h-4 w-4" />
+                                Official Website
+                            </a>
+                        </section>
+                    )}
+                </div>
+            </ScrollArea>
+        </div>
+    )
+}
