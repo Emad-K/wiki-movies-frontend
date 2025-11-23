@@ -43,10 +43,10 @@ export function TrendingMovies() {
             <TrendingUp className="h-6 w-6 text-primary" />
             <h2 className="text-2xl font-bold">Trending This Week</h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="animate-pulse">
-                <div className="bg-muted rounded-lg aspect-[2/3] w-full" />
+                <div className="bg-muted rounded-[4px] aspect-[2/3] w-full" />
               </div>
             ))}
           </div>
@@ -82,7 +82,7 @@ export function TrendingMovies() {
           <TrendingUp className="h-6 w-6 text-primary" />
           <h2 className="text-2xl font-bold">Trending This Week</h2>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
           {movies.slice(0, 24).map((movie) => (
             <TrendingMovieCard key={movie.id} movie={movie} />
           ))}
@@ -133,7 +133,7 @@ function TrendingMovieCard({ movie }: { movie: TMDBTrendingMovie }) {
       onMouseLeave={handleMouseLeave}
     >
       {/* Base Card (Poster) */}
-      <div className="relative rounded-lg overflow-hidden aspect-[2/3] transition-opacity duration-300">
+      <div className="relative rounded-[4px] overflow-hidden aspect-[2/3] transition-opacity duration-300">
         <img
           src={posterUrl}
           alt={title}
@@ -147,7 +147,7 @@ function TrendingMovieCard({ movie }: { movie: TMDBTrendingMovie }) {
         <div
           className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[240%] z-50 animate-in fade-in zoom-in-95 duration-200"
         >
-          <div className="bg-card rounded-[4px] shadow-xl overflow-hidden ring-1 ring-border relative h-full">
+          <div className="bg-card rounded-[4px] shadow-xl overflow-hidden relative h-full">
             {/* Backdrop Image - Full Cover */}
             <img
               src={backdropUrl}
