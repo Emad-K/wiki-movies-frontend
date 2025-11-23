@@ -2,12 +2,13 @@
 
 import { Navigation } from "@/components/navigation"
 import { useState, useEffect, useRef } from "react"
-import { Search, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 import { MovieGrid } from "@/components/movie-grid"
 import { TrendingMovies } from "@/components/trending-movies"
 import type { SearchHit } from "@/lib/types/api"
 import { Skeleton } from "@/components/ui/skeleton"
+
+import { ExpandableSearch } from "@/components/expandable-search"
 
 export default function Home() {
   const [query, setQuery] = useState("")
@@ -91,15 +92,7 @@ export default function Home() {
     }
   }
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!query.trim()) return
 
-    setHasSearched(true)
-    setCurrentOffset(0)
-    setHasMore(false)
-    await performSearch(query, 0, false)
-  }
 
   const loadMoreResults = () => {
     if (query.trim() && hasMore && !isLoadingMore) {
@@ -112,38 +105,20 @@ export default function Home() {
       <Navigation />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">
-              Discover Movies
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base">
-              Describe what you&apos;re looking for in natural language
-            </p>
-          </div>
 
-          <form onSubmit={handleSearch} className="max-w-3xl mx-auto mb-12">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder='e.g. "find me all the chris pratt movies after 2010 where he is in space"'
-                className="flex h-14 w-full rounded-md border border-input bg-background pl-12 pr-24 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-              <Button
-                type="submit"
-                disabled={isLoading || !query.trim()}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Search"
-                )}
-              </Button>
-            </div>
-          </form>
+          <div className="mb-12">
+            <ExpandableSearch
+              onSearch={(val) => {
+                setQuery(val)
+                setHasSearched(true)
+                setCurrentOffset(0)
+                setHasMore(false)
+                performSearch(val, 0, false)
+              }}
+              isLoading={isLoading}
+              initialQuery={query}
+            />
+          </div>
 
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
