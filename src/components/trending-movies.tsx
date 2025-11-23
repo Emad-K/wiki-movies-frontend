@@ -145,49 +145,46 @@ function TrendingMovieCard({ movie }: { movie: TMDBTrendingMovie }) {
       {/* Expanded Card (Hover State) */}
       {isHovered && (
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] z-50 animate-in fade-in zoom-in-95 duration-200"
-          style={{ minWidth: '300px' }}
+          className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[240%] z-50 animate-in fade-in zoom-in-95 duration-200"
         >
-          <div className="bg-card rounded-lg shadow-xl overflow-hidden ring-1 ring-border">
-            {/* Backdrop Image */}
-            <div className="relative aspect-video w-full">
-              <img
-                src={backdropUrl}
-                alt={title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+          <div className="bg-card rounded-[4px] shadow-xl overflow-hidden ring-1 ring-border relative h-full">
+            {/* Backdrop Image - Full Cover */}
+            <img
+              src={backdropUrl}
+              alt={title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
 
-              {/* Title on Image */}
-              <div className="absolute bottom-3 left-4 right-4">
-                <h3 className="font-bold text-lg text-white line-clamp-1 drop-shadow-md">{title}</h3>
-              </div>
-            </div>
+            {/* Gradient Overlay - Stronger at bottom for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
-            {/* Content */}
-            <div className="p-4 space-y-3">
+            {/* Content Overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2 text-white">
+              {/* Title */}
+              <h3 className="font-bold text-lg line-clamp-1 drop-shadow-md">{title}</h3>
+
               {/* Metadata Row */}
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-green-500 font-semibold">{rating} Match</span>
-                <span className="text-muted-foreground">{year}</span>
-                <span className="border border-muted-foreground/30 px-1.5 py-0.5 rounded text-[10px] uppercase font-medium">
+              <div className="flex items-center gap-3 text-xs font-medium text-white/90">
+                <span className="text-green-400 font-bold">{rating} Match</span>
+                <span>{year}</span>
+                <span className="border border-white/40 px-1.5 py-0.5 rounded text-[10px] uppercase bg-black/20 backdrop-blur-sm">
                   {movie.media_type === 'movie' ? 'Movie' : 'TV'}
                 </span>
                 {voteCount && (
-                  <span className="text-xs text-muted-foreground">({voteCount} votes)</span>
+                  <span className="text-white/60">({voteCount} votes)</span>
                 )}
               </div>
 
               {/* Genres */}
               {genres && (
-                <div className="text-xs text-muted-foreground font-medium">
+                <div className="text-xs text-white/80 font-medium line-clamp-1">
                   {genres}
                 </div>
               )}
 
               {/* Overview */}
               {movie.overview && (
-                <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                <p className="text-xs text-white/70 line-clamp-3 leading-relaxed drop-shadow-sm">
                   {movie.overview}
                 </p>
               )}
