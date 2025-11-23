@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Image from "next/image"
+import { motion, useMotionValue } from "framer-motion"
 import { Navigation } from "@/components/navigation"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { getTMDBBackdropUrl, getTMDBPosterUrl } from "@/lib/tmdb"
@@ -46,6 +47,9 @@ export default function TVShowDetailPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
+    // Framer Motion for smooth parallax
+    const parallaxY = useMotionValue(0)
+
     useEffect(() => {
         const fetchShow = async () => {
             try {
@@ -69,6 +73,23 @@ export default function TVShowDetailPage() {
             fetchShow()
         }
     }, [params.id])
+
+    // Smooth parallax effect with framer-motion
+    useEffect(() => {
+        const handleScroll = (e: Event) => {
+            const target = e.target as HTMLElement
+            const scrolled = target.scrollTop
+            // Directly update motion value for instant response
+            parallaxY.set(scrolled * 0.5)
+        }
+
+        // Find the ScrollArea viewport element
+        const viewport = document.querySelector('[data-radix-scroll-area-viewport]')
+        if (viewport) {
+            viewport.addEventListener('scroll', handleScroll, { passive: true })
+            return () => viewport.removeEventListener('scroll', handleScroll)
+        }
+    }, [show, parallaxY])
 
     if (isLoading) {
         return (
@@ -108,89 +129,99 @@ export default function TVShowDetailPage() {
             <Navigation />
             <ScrollArea className="flex-1 h-0">
                 {/* Hero Banner */}
-                <div className="relative w-full h-[60vh] min-h-[400px] max-h-[600px]">
-                    {/* Backdrop Image */}
-                    <div className="absolute inset-0">
-                        {show.backdrop_path && backdropUrl && (
-                            <Image
-                                src={backdropUrl}
-                                alt={show.name}
-                                fill
-                                className="object-cover"
-                                priority
-                                sizes="100vw"
-                            />
-                        )}
-                        {/* Gradient Overlays - Stronger for better text readability */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/40" />
-                    </div>
-
-                    {/* Content Over Banner */}
-                    <div className="relative h-full container mx-auto px-4 flex items-end pb-8">
-                        <div className="flex gap-6 items-end max-w-5xl">
-                            {/* Poster */}
-                            <div className="hidden md:block flex-shrink-0 relative w-48 h-72">
-                                {show.poster_path && posterUrl && (
+                <div className="hero-banner-wrapper">
+                    <div className="hero-banner-container">
+                        <div className="hero-banner">
+                            {/* Backdrop Image */}
+                            <motion.div
+                                className="absolute inset-0 parallax-smooth"
+                                style={{ y: parallaxY }}
+                            >
+                                {show.backdrop_path && backdropUrl && (
                                     <Image
-                                        src={posterUrl}
+                                        src={backdropUrl}
                                         alt={show.name}
                                         fill
-                                        className="rounded-lg shadow-2xl object-cover"
-                                        sizes="192px"
+                                        className="object-cover object-top"
+                                        priority
+                                        sizes="(max-width: 1536px) 100vw, 1536px"
+                                        quality={90}
                                     />
                                 )}
-                            </div>
+                                {/* Gradient Overlays - Stronger for better text readability */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/40" />
+                            </motion.div>
 
-                            {/* Title and Meta */}
-                            <div className="flex-1 space-y-3 pb-2">
-                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-lg">
-                                    {show.name}
-                                </h1>
-
-                                {show.tagline && (
-                                    <p className="text-lg md:text-xl text-white/80 italic drop-shadow">
-                                        &ldquo;{show.tagline}&rdquo;
-                                    </p>
-                                )}
-
-                                <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-white/90">
-                                    {show.first_air_date && (
-                                        <div className="flex items-center gap-1.5">
-                                            <Calendar className="h-4 w-4" />
-                                            <span>{new Date(show.first_air_date).getFullYear()}</span>
+                            {/* Content Over Banner */}
+                            <div className="hero-banner-content">
+                                <div className="hero-banner-content-inner">
+                                    <div className="flex gap-6 items-end">
+                                        {/* Poster */}
+                                        <div className="hidden md:block flex-shrink-0 relative w-48 h-72">
+                                            {show.poster_path && posterUrl && (
+                                                <Image
+                                                    src={posterUrl}
+                                                    alt={show.name}
+                                                    fill
+                                                    className="rounded-lg shadow-2xl object-cover"
+                                                    sizes="192px"
+                                                />
+                                            )}
                                         </div>
-                                    )}
 
-                                    <div className="flex items-center gap-1.5">
-                                        <Tv className="h-4 w-4" />
-                                        <span>{show.number_of_seasons} Season{show.number_of_seasons !== 1 ? 's' : ''}</span>
-                                    </div>
+                                        {/* Title and Meta */}
+                                        <div className="flex-1 space-y-3 pb-2">
+                                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-lg">
+                                                {show.name}
+                                            </h1>
 
-                                    {avgRuntime > 0 && (
-                                        <div className="flex items-center gap-1.5">
-                                            <Clock className="h-4 w-4" />
-                                            <span>{avgRuntime}m</span>
+                                            {show.tagline && (
+                                                <p className="text-lg md:text-xl text-white/80 italic drop-shadow">
+                                                    &ldquo;{show.tagline}&rdquo;
+                                                </p>
+                                            )}
+
+                                            <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-white/90">
+                                                {show.first_air_date && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Calendar className="h-4 w-4" />
+                                                        <span>{new Date(show.first_air_date).getFullYear()}</span>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center gap-1.5">
+                                                    <Tv className="h-4 w-4" />
+                                                    <span>{show.number_of_seasons} Season{show.number_of_seasons !== 1 ? 's' : ''}</span>
+                                                </div>
+
+                                                {avgRuntime > 0 && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Clock className="h-4 w-4" />
+                                                        <span>{avgRuntime}m</span>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center gap-1.5">
+                                                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                                    <span className="font-semibold">{show.vote_average.toFixed(1)}</span>
+                                                    <span className="text-white/60">({show.vote_count.toLocaleString()} votes)</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Genres */}
+                                            <div className="flex flex-wrap gap-2">
+                                                {show.genres.map(genre => (
+                                                    <span
+                                                        key={genre.id}
+                                                        className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm text-white border border-white/30"
+                                                    >
+                                                        {genre.name}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
-                                    )}
-
-                                    <div className="flex items-center gap-1.5">
-                                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                        <span className="font-semibold">{show.vote_average.toFixed(1)}</span>
-                                        <span className="text-white/60">({show.vote_count.toLocaleString()} votes)</span>
                                     </div>
-                                </div>
-
-                                {/* Genres */}
-                                <div className="flex flex-wrap gap-2">
-                                    {show.genres.map(genre => (
-                                        <span
-                                            key={genre.id}
-                                            className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm text-white border border-white/30"
-                                        >
-                                            {genre.name}
-                                        </span>
-                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -198,7 +229,7 @@ export default function TVShowDetailPage() {
                 </div>
 
                 {/* Main Content */}
-                <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl">
+                <div className="container mx-auto px-4 py-8 space-y-8 max-w-screen-2xl">
                     {/* Overview */}
                     <section>
                         <h2 className="text-2xl font-bold mb-4">Overview</h2>

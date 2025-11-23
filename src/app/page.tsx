@@ -104,7 +104,7 @@ export default function Home() {
     <div className="flex flex-col h-screen">
       <Navigation />
       <ScrollArea className="flex-1 h-0">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 max-w-screen-2xl">
 
           <div className="mb-12">
             <ExpandableSearch
