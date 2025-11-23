@@ -23,6 +23,7 @@ export interface TMDBSearchResult {
   popularity?: number
   overview?: string
   original_language?: string
+  genre_ids?: number[]
   adult?: boolean
 }
 

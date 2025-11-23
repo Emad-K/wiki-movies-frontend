@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { TMDBTrendingMovie } from "@/lib/types/api"
-import { getTMDBPosterUrl } from "@/lib/tmdb"
+import { MovieCard } from "./movie-card"
 import { TrendingUp } from "lucide-react"
-
-import { TMDB_GENRES } from "@/lib/tmdb-genres"
 
 export function TrendingMovies() {
   const [movies, setMovies] = useState<TMDBTrendingMovie[]>([])
@@ -84,114 +82,10 @@ export function TrendingMovies() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
           {movies.slice(0, 24).map((movie) => (
-            <TrendingMovieCard key={movie.id} movie={movie} />
+            <MovieCard key={movie.id} movie={movie} />
           ))}
         </div>
       </div>
-    </div>
-  )
-}
-
-function TrendingMovieCard({ movie }: { movie: TMDBTrendingMovie }) {
-  const [isHovered, setIsHovered] = useState(false)
-  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
-
-  const posterUrl = getTMDBPosterUrl(movie.poster_path, 'w500')
-  const backdropUrl = movie.backdrop_path ? getTMDBPosterUrl(movie.backdrop_path, 'w780') : posterUrl
-  const title = movie.title || movie.name || 'Unknown'
-  const releaseDate = movie.release_date || movie.first_air_date
-  const year = releaseDate ? new Date(releaseDate).getFullYear() : null
-  const rating = movie.vote_average ? movie.vote_average.toFixed(1) : null
-  const voteCount = movie.vote_count ? movie.vote_count.toLocaleString() : null
-
-  // Get top 3 genres
-  const genres = movie.genre_ids
-    ?.slice(0, 3)
-    .map(id => TMDB_GENRES[id])
-    .filter(Boolean)
-    .join(" • ")
-
-  const handleMouseEnter = () => {
-    const timeout = setTimeout(() => {
-      setIsHovered(true)
-    }, 400) // 400ms delay before showing expanded card
-    setHoverTimeout(timeout)
-  }
-
-  const handleMouseLeave = () => {
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout)
-      setHoverTimeout(null)
-    }
-    setIsHovered(false)
-  }
-
-  return (
-    <div
-      className="relative group"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {/* Base Card (Poster) */}
-      <div className="relative rounded-[4px] overflow-hidden aspect-[2/3] transition-opacity duration-300">
-        <img
-          src={posterUrl}
-          alt={title}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-      </div>
-
-      {/* Expanded Card (Hover State) */}
-      {isHovered && (
-        <div
-          className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[240%] z-50 animate-in fade-in zoom-in-95 duration-200"
-        >
-          <div className="bg-card rounded-[4px] shadow-xl overflow-hidden relative h-full">
-            {/* Backdrop Image - Full Cover */}
-            <img
-              src={backdropUrl}
-              alt={title}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-
-            {/* Gradient Overlay - Stronger at bottom for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-
-            {/* Content Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2 text-white">
-              {/* Title */}
-              <h3 className="font-bold text-lg line-clamp-1 drop-shadow-md">{title}</h3>
-
-              {/* Metadata Row */}
-              <div className="flex items-center gap-3 text-xs font-medium text-white/90">
-                <span className="text-green-400 font-bold">{rating} Match</span>
-                <span>{year}</span>
-                <span className="border border-white/40 px-1.5 py-0.5 rounded text-[10px] uppercase bg-black/20 backdrop-blur-sm">
-                  {movie.media_type === 'movie' ? 'Movie' : 'TV'}
-                </span>
-                {voteCount && (
-                  <span className="text-white/60">({voteCount} votes)</span>
-                )}
-              </div>
-
-              {/* Genres */}
-              {genres && (
-                <div className="text-xs text-white/80 font-medium line-clamp-1">
-                  {genres}
-                </div>
-              )}
-
-              {/* Overview */}
-              {movie.overview && (
-                <p className="text-xs text-white/70 line-clamp-3 leading-relaxed drop-shadow-sm">
-                  {movie.overview}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
