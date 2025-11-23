@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import Image from "next/image"
 import { Navigation } from "@/components/navigation"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { getTMDBBackdropUrl, getTMDBPosterUrl } from "@/lib/tmdb"
@@ -110,28 +111,33 @@ export default function TVShowDetailPage() {
                 <div className="relative w-full h-[60vh] min-h-[400px] max-h-[600px]">
                     {/* Backdrop Image */}
                     <div className="absolute inset-0">
-                        {show.backdrop_path && (
-                            <img
+                        {show.backdrop_path && backdropUrl && (
+                            <Image
                                 src={backdropUrl}
                                 alt={show.name}
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                priority
+                                sizes="100vw"
                             />
                         )}
-                        {/* Gradient Overlays */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-                        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/40" />
+                        {/* Gradient Overlays - Stronger for better text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-black/40" />
                     </div>
 
                     {/* Content Over Banner */}
                     <div className="relative h-full container mx-auto px-4 flex items-end pb-8">
                         <div className="flex gap-6 items-end max-w-5xl">
                             {/* Poster */}
-                            <div className="hidden md:block flex-shrink-0">
-                                {show.poster_path && (
-                                    <img
+                            <div className="hidden md:block flex-shrink-0 relative w-48 h-72">
+                                {show.poster_path && posterUrl && (
+                                    <Image
                                         src={posterUrl}
                                         alt={show.name}
-                                        className="w-48 rounded-lg shadow-2xl"
+                                        fill
+                                        className="rounded-lg shadow-2xl object-cover"
+                                        sizes="192px"
                                     />
                                 )}
                             </div>
@@ -257,11 +263,15 @@ export default function TVShowDetailPage() {
                                 {show.networks.map(network => (
                                     <div key={network.id} className="flex items-center gap-3">
                                         {network.logo_path ? (
-                                            <img
-                                                src={`https://image.tmdb.org/t/p/w200${network.logo_path}`}
-                                                alt={network.name}
-                                                className="h-8 object-contain"
-                                            />
+                                            <div className="relative h-8 w-32">
+                                                <Image
+                                                    src={`https://image.tmdb.org/t/p/w200${network.logo_path}`}
+                                                    alt={network.name}
+                                                    fill
+                                                    className="object-contain object-left"
+                                                    sizes="128px"
+                                                />
+                                            </div>
                                         ) : (
                                             <span className="text-muted-foreground">{network.name}</span>
                                         )}
@@ -279,11 +289,15 @@ export default function TVShowDetailPage() {
                                 {show.credits.cast.slice(0, 10).map(person => (
                                     <div key={person.id} className="space-y-2">
                                         {person.profile_path ? (
-                                            <img
-                                                src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
-                                                alt={person.name}
-                                                className="w-full aspect-[2/3] object-cover rounded-lg"
-                                            />
+                                            <div className="relative w-full aspect-[2/3]">
+                                                <Image
+                                                    src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
+                                                    alt={person.name}
+                                                    fill
+                                                    className="object-cover rounded-lg"
+                                                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                                                />
+                                            </div>
                                         ) : (
                                             <div className="w-full aspect-[2/3] bg-muted rounded-lg flex items-center justify-center">
                                                 <span className="text-muted-foreground text-xs">No Image</span>

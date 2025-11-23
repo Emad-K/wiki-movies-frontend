@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { getTMDBPosterUrl, getTMDBBackdropUrl } from "@/lib/tmdb"
 import { TMDB_GENRES } from "@/lib/tmdb-genres"
 
@@ -51,11 +52,11 @@ export function MovieCard({ movie }: MovieCardProps) {
     const handleMouseEnter = () => {
         // Prefetch images immediately on hover
         if (backdropUrl) {
-            const img = new Image()
+            const img = new window.Image()
             img.src = backdropUrl
         }
         if (lowResBackdropUrl) {
-            const imgLow = new Image()
+            const imgLow = new window.Image()
             imgLow.src = lowResBackdropUrl
         }
 
@@ -85,11 +86,13 @@ export function MovieCard({ movie }: MovieCardProps) {
         >
             {/* Base Card (Poster) */}
             <div className="relative rounded-[4px] overflow-hidden aspect-[2/3] transition-opacity duration-300">
-                <img
+                <Image
                     src={posterUrl}
                     alt={title}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                     loading="lazy"
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
                 />
 
                 {/* Media Type Badge */}
@@ -109,18 +112,22 @@ export function MovieCard({ movie }: MovieCardProps) {
                 >
                     <div className="bg-card rounded-[4px] shadow-xl overflow-hidden relative h-full">
                         {/* Low Res Placeholder (Blur) */}
-                        <img
+                        <Image
                             src={lowResBackdropUrl || posterUrl}
                             alt={title}
-                            className="absolute inset-0 w-full h-full object-cover blur-sm scale-105"
+                            fill
+                            className="object-cover blur-sm scale-105"
+                            sizes="240px"
                         />
 
                         {/* High Res Backdrop - Full Cover */}
-                        <img
+                        <Image
                             src={backdropUrl || posterUrl}
                             alt={title}
-                            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 opacity-0"
+                            fill
+                            className="object-cover transition-opacity duration-300 opacity-0"
                             onLoad={(e) => e.currentTarget.classList.remove('opacity-0')}
+                            sizes="240px"
                         />
 
                         {/* Gradient Overlay - Stronger at bottom for text readability */}
