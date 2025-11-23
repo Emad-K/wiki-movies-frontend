@@ -179,7 +179,7 @@ export default function Home() {
               </div>
             )
           ) : (
-            <div className="mt-8">
+            <div>
               <TrendingMovies />
             </div>
           )}
