@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import { TMDBTrendingMovie } from "@/lib/types/api"
 import { getTMDBPosterUrl } from "@/lib/tmdb"
-import { Calendar, Star, TrendingUp } from "lucide-react"
+import { TrendingUp } from "lucide-react"
+
+import { TMDB_GENRES } from "@/lib/tmdb-genres"
 
 export function TrendingMovies() {
   const [movies, setMovies] = useState<TMDBTrendingMovie[]>([])
@@ -91,148 +93,108 @@ export function TrendingMovies() {
 }
 
 function TrendingMovieCard({ movie }: { movie: TMDBTrendingMovie }) {
-  const [showDetails, setShowDetails] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
+
   const posterUrl = getTMDBPosterUrl(movie.poster_path, 'w500')
+  const backdropUrl = movie.backdrop_path ? getTMDBPosterUrl(movie.backdrop_path, 'w780') : posterUrl
   const title = movie.title || movie.name || 'Unknown'
   const releaseDate = movie.release_date || movie.first_air_date
   const year = releaseDate ? new Date(releaseDate).getFullYear() : null
   const rating = movie.vote_average ? movie.vote_average.toFixed(1) : null
+  const voteCount = movie.vote_count ? movie.vote_count.toLocaleString() : null
+
+  // Get top 3 genres
+  const genres = movie.genre_ids
+    ?.slice(0, 3)
+    .map(id => TMDB_GENRES[id])
+    .filter(Boolean)
+    .join(" • ")
+
+  const handleMouseEnter = () => {
+    const timeout = setTimeout(() => {
+      setIsHovered(true)
+    }, 400) // 400ms delay before showing expanded card
+    setHoverTimeout(timeout)
+  }
+
+  const handleMouseLeave = () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout)
+      setHoverTimeout(null)
+    }
+    setIsHovered(false)
+  }
 
   return (
-    <>
-      {/* Desktop: Hover to show details */}
-      <div
-        className="relative cursor-pointer hidden md:block group"
-        onMouseEnter={() => setShowDetails(true)}
-        onMouseLeave={() => setShowDetails(false)}
-      >
-        <div className="relative rounded-lg overflow-hidden transition-transform duration-200 group-hover:scale-105">
-          <img
-            src={posterUrl}
-            alt={title}
-            className="w-full aspect-[2/3] object-cover"
-            loading="lazy"
-          />
-          {/* Media Type Badge - Always Visible */}
-          <div className="absolute top-2 right-2 z-10">
-            <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-foreground text-background">
-              {movie.media_type === 'movie' ? 'Movie' : 'TV'}
-            </span>
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <div className="absolute bottom-0 left-0 right-0 p-3 space-y-1">
-              <h3 className="font-semibold text-sm text-white line-clamp-2">{title}</h3>
-              <div className="flex items-center justify-between text-xs text-white/90">
-                {year && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    <span>{year}</span>
-                  </div>
-                )}
-                {rating && (
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                    <span>{rating}</span>
-                  </div>
+    <div
+      className="relative group"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Base Card (Poster) */}
+      <div className="relative rounded-lg overflow-hidden aspect-[2/3] transition-opacity duration-300">
+        <img
+          src={posterUrl}
+          alt={title}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+
+      {/* Expanded Card (Hover State) */}
+      {isHovered && (
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] z-50 animate-in fade-in zoom-in-95 duration-200"
+          style={{ minWidth: '300px' }}
+        >
+          <div className="bg-card rounded-lg shadow-xl overflow-hidden ring-1 ring-border">
+            {/* Backdrop Image */}
+            <div className="relative aspect-video w-full">
+              <img
+                src={backdropUrl}
+                alt={title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+
+              {/* Title on Image */}
+              <div className="absolute bottom-3 left-4 right-4">
+                <h3 className="font-bold text-lg text-white line-clamp-1 drop-shadow-md">{title}</h3>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-3">
+              {/* Metadata Row */}
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-green-500 font-semibold">{rating} Match</span>
+                <span className="text-muted-foreground">{year}</span>
+                <span className="border border-muted-foreground/30 px-1.5 py-0.5 rounded text-[10px] uppercase font-medium">
+                  {movie.media_type === 'movie' ? 'Movie' : 'TV'}
+                </span>
+                {voteCount && (
+                  <span className="text-xs text-muted-foreground">({voteCount} votes)</span>
                 )}
               </div>
+
+              {/* Genres */}
+              {genres && (
+                <div className="text-xs text-muted-foreground font-medium">
+                  {genres}
+                </div>
+              )}
+
+              {/* Overview */}
               {movie.overview && (
-                <p className="text-xs text-white/80 line-clamp-2 mt-1">
+                <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
                   {movie.overview}
                 </p>
               )}
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Mobile: Click to show details */}
-      <div className="md:hidden">
-        <div
-          className="relative rounded-lg overflow-hidden cursor-pointer"
-          onClick={() => setShowDetails(true)}
-        >
-          <img
-            src={posterUrl}
-            alt={title}
-            className="w-full aspect-[2/3] object-cover"
-            loading="lazy"
-          />
-          {/* Media Type Badge - Always Visible */}
-          <div className="absolute top-2 right-2">
-            <span className="inline-block px-2 py-1 text-xs font-semibold rounded bg-foreground text-background">
-              {movie.media_type === 'movie' ? 'Movie' : 'TV'}
-            </span>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-            <h3 className="font-semibold text-sm text-white line-clamp-2">{title}</h3>
-            <div className="flex items-center justify-between text-xs text-white/90 mt-1">
-              {year && <span>{year}</span>}
-              {rating && (
-                <div className="flex items-center gap-1">
-                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  <span>{rating}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {showDetails && (
-          <div
-            className="fixed inset-0 bg-black/80 z-50 flex items-end"
-            onClick={() => setShowDetails(false)}
-          >
-            <div
-              className="bg-card rounded-t-2xl p-6 w-full max-h-[80vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex gap-4 mb-4">
-                <img
-                  src={posterUrl}
-                  alt={title}
-                  className="w-24 aspect-[2/3] object-cover rounded-lg flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-lg mb-2 line-clamp-2">{title}</h3>
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    {year && (
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>{year}</span>
-                      </div>
-                    )}
-                    {rating && (
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                        <span>{rating}/10</span>
-                      </div>
-                    )}
-                    {movie.media_type && (
-                      <div className="inline-block px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
-                        {movie.media_type === 'movie' ? 'Movie' : 'TV Show'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {movie.overview && (
-                <div className="mb-4">
-                  <h4 className="font-semibold text-sm mb-1">Overview</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{movie.overview}</p>
-                </div>
-              )}
-              <button
-                className="w-full py-2 bg-primary text-primary-foreground rounded-md font-medium"
-                onClick={() => setShowDetails(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
+      )}
+    </div>
   )
 }
-
