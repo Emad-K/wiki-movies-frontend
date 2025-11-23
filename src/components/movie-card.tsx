@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { getTMDBPosterUrl } from "@/lib/tmdb"
+import { getTMDBPosterUrl, getTMDBBackdropUrl } from "@/lib/tmdb"
 import { TMDB_GENRES } from "@/lib/tmdb-genres"
 
 export interface MovieCardProps {
@@ -26,7 +26,14 @@ export function MovieCard({ movie }: MovieCardProps) {
     const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
 
     const posterUrl = getTMDBPosterUrl(movie.poster_path, 'w500')
-    const backdropUrl = movie.backdrop_path ? getTMDBPosterUrl(movie.backdrop_path, 'w780') : posterUrl
+    // Use w780 for high quality backdrop, w300 for low res placeholder
+    const backdropUrl = movie.backdrop_path
+        ? getTMDBBackdropUrl(movie.backdrop_path, 'w780')
+        : posterUrl
+    const lowResBackdropUrl = movie.backdrop_path
+        ? getTMDBBackdropUrl(movie.backdrop_path, 'w300')
+        : getTMDBPosterUrl(movie.poster_path, 'w92')
+
     const title = movie.title || movie.name || 'Unknown'
     const releaseDate = movie.release_date || movie.first_air_date
     const year = releaseDate ? new Date(releaseDate).getFullYear() : null
@@ -41,6 +48,16 @@ export function MovieCard({ movie }: MovieCardProps) {
         .join(" • ")
 
     const handleMouseEnter = () => {
+        // Prefetch images immediately on hover
+        if (backdropUrl) {
+            const img = new Image()
+            img.src = backdropUrl
+        }
+        if (lowResBackdropUrl) {
+            const imgLow = new Image()
+            imgLow.src = lowResBackdropUrl
+        }
+
         const timeout = setTimeout(() => {
             setIsHovered(true)
         }, 400) // 400ms delay before showing expanded card
@@ -77,11 +94,19 @@ export function MovieCard({ movie }: MovieCardProps) {
                     className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[240%] z-50 animate-in fade-in zoom-in-95 duration-200"
                 >
                     <div className="bg-card rounded-[4px] shadow-xl overflow-hidden relative h-full">
-                        {/* Backdrop Image - Full Cover */}
+                        {/* Low Res Placeholder (Blur) */}
                         <img
-                            src={backdropUrl}
+                            src={lowResBackdropUrl || posterUrl}
                             alt={title}
-                            className="absolute inset-0 w-full h-full object-cover"
+                            className="absolute inset-0 w-full h-full object-cover blur-sm scale-105"
+                        />
+
+                        {/* High Res Backdrop - Full Cover */}
+                        <img
+                            src={backdropUrl || posterUrl}
+                            alt={title}
+                            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300 opacity-0"
+                            onLoad={(e) => e.currentTarget.classList.remove('opacity-0')}
                         />
 
                         {/* Gradient Overlay - Stronger at bottom for text readability */}
