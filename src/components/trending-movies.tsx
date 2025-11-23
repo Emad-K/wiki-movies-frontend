@@ -5,6 +5,8 @@ import { TMDBTrendingMovie } from "@/lib/types/api"
 import { MovieCard } from "./movie-card"
 import { TrendingUp } from "lucide-react"
 
+import { Skeleton } from "@/components/ui/skeleton"
+
 export function TrendingMovies() {
   const [movies, setMovies] = useState<TMDBTrendingMovie[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -43,8 +45,8 @@ export function TrendingMovies() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-muted rounded-[4px] aspect-[2/3] w-full" />
+              <div key={i}>
+                <Skeleton className="aspect-[2/3] w-full rounded-[4px]" />
               </div>
             ))}
           </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { SearchHit } from "@/lib/types/api"
 import { searchTMDB, type TMDBSearchResult } from "@/lib/tmdb"
 import { MovieCard } from "./movie-card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface MovieGridProps {
   movies: SearchHit[]
@@ -19,7 +20,7 @@ export function MovieGrid({ movies }: MovieGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 p-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
       {movies.map((movie) => (
         <HydratedMovieCard key={movie.id} movie={movie} />
       ))}
@@ -67,8 +68,8 @@ function HydratedMovieCard({ movie }: { movie: SearchHit }) {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse">
-        <div className="bg-muted rounded-[4px] aspect-[2/3] w-full" />
+      <div>
+        <Skeleton className="aspect-[2/3] w-full rounded-[4px]" />
       </div>
     )
   }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { MovieGrid } from "@/components/movie-grid"
 import { TrendingMovies } from "@/components/trending-movies"
 import type { SearchHit } from "@/lib/types/api"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function Home() {
   const [query, setQuery] = useState("")
@@ -145,18 +146,16 @@ export default function Home() {
           </form>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-                <p className="text-muted-foreground">Searching movies...</p>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i}>
+                  <Skeleton className="aspect-[2/3] w-full rounded-[4px]" />
+                </div>
+              ))}
             </div>
           ) : hasSearched ? (
             searchResults.length > 0 ? (
               <>
-                <h2 className="text-xl md:text-2xl font-semibold mb-6">
-                  Search Results
-                </h2>
                 <MovieGrid movies={searchResults} />
 
                 {/* Infinite scroll trigger */}
