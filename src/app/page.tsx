@@ -7,7 +7,7 @@ import { MovieGrid } from "@/components/movie-grid"
 import { TrendingMovies } from "@/components/trending-movies"
 import type { SearchHit } from "@/lib/types/api"
 import { Skeleton } from "@/components/ui/skeleton"
-
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { ExpandableSearch } from "@/components/expandable-search"
 
 export default function Home() {
@@ -101,9 +101,9 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col h-screen">
       <Navigation />
-      <main className="flex-1">
+      <ScrollArea className="flex-1 h-0">
         <div className="container mx-auto px-4 py-8">
 
           <div className="mb-12">
@@ -159,7 +159,7 @@ export default function Home() {
             </div>
           )}
         </div>
-      </main>
+      </ScrollArea>
     </div>
   )
 }
