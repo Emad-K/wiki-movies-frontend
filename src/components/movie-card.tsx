@@ -91,6 +91,15 @@ export function MovieCard({ movie }: MovieCardProps) {
                     className="w-full h-full object-cover"
                     loading="lazy"
                 />
+
+                {/* Media Type Badge */}
+                {movie.media_type && (
+                    <div className="absolute top-2 right-2 z-10">
+                        <span className="border border-white/40 px-1.5 py-0.5 rounded text-[10px] uppercase bg-black/60 backdrop-blur-sm text-white font-medium">
+                            {movie.media_type === 'movie' ? 'Movie' : 'TV'}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Expanded Card (Hover State) */}
