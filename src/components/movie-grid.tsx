@@ -11,6 +11,8 @@ interface MovieGridProps {
 }
 
 export function MovieGrid({ movies }: MovieGridProps) {
+  const [hoveredMovieId, setHoveredMovieId] = useState<number | null>(null)
+
   if (!movies || movies.length === 0) {
     return (
       <div className="flex items-center justify-center p-12 text-muted-foreground">
@@ -22,13 +24,32 @@ export function MovieGrid({ movies }: MovieGridProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
       {movies.map((movie) => (
-        <HydratedMovieCard key={movie.id} movie={movie} />
+        <HydratedMovieCard
+          key={movie.id}
+          movie={movie}
+          isHovered={hoveredMovieId === movie.id}
+          onHover={(isHovered) => {
+            if (isHovered) {
+              setHoveredMovieId(movie.id)
+            } else {
+              setHoveredMovieId((prev) => (prev === movie.id ? null : prev))
+            }
+          }}
+        />
       ))}
     </div>
   )
 }
 
-function HydratedMovieCard({ movie }: { movie: SearchHit }) {
+function HydratedMovieCard({
+  movie,
+  isHovered,
+  onHover,
+}: {
+  movie: SearchHit
+  isHovered: boolean
+  onHover: (isHovered: boolean) => void
+}) {
   const [tmdbData, setTmdbData] = useState<TMDBSearchResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -90,6 +111,6 @@ function HydratedMovieCard({ movie }: { movie: SearchHit }) {
     genre_ids: tmdbData?.genre_ids
   }
 
-  return <MovieCard movie={movieData} />
+  return <MovieCard movie={movieData} isHovered={isHovered} onHover={onHover} />
 }
 

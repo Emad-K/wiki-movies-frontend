@@ -21,10 +21,11 @@ export interface MovieCardProps {
         overview?: string
         genre_ids?: number[]
     }
+    isHovered?: boolean
+    onHover?: (isHovered: boolean) => void
 }
 
-export function MovieCard({ movie }: MovieCardProps) {
-    const [isHovered, setIsHovered] = useState(false)
+export function MovieCard({ movie, isHovered = false, onHover }: MovieCardProps) {
     const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
 
     const posterUrl = getTMDBPosterUrl(movie.poster_path, 'w500')
@@ -32,9 +33,7 @@ export function MovieCard({ movie }: MovieCardProps) {
     const backdropUrl = movie.backdrop_path
         ? getTMDBBackdropUrl(movie.backdrop_path, 'w780')
         : posterUrl
-    const lowResBackdropUrl = movie.backdrop_path
-        ? getTMDBBackdropUrl(movie.backdrop_path, 'w300')
-        : getTMDBPosterUrl(movie.poster_path, 'w92')
+
 
     const title = movie.title || movie.name || 'Unknown'
     const releaseDate = movie.release_date || movie.first_air_date
@@ -55,13 +54,10 @@ export function MovieCard({ movie }: MovieCardProps) {
             const img = new window.Image()
             img.src = backdropUrl
         }
-        if (lowResBackdropUrl) {
-            const imgLow = new window.Image()
-            imgLow.src = lowResBackdropUrl
-        }
+
 
         const timeout = setTimeout(() => {
-            setIsHovered(true)
+            onHover?.(true)
         }, 400) // 400ms delay before showing expanded card
         setHoverTimeout(timeout)
     }
@@ -71,7 +67,7 @@ export function MovieCard({ movie }: MovieCardProps) {
             clearTimeout(hoverTimeout)
             setHoverTimeout(null)
         }
-        setIsHovered(false)
+        onHover?.(false)
     }
 
     // Determine the correct route based on media type
@@ -111,15 +107,6 @@ export function MovieCard({ movie }: MovieCardProps) {
                     className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[240%] z-50 animate-in fade-in zoom-in-95 duration-200"
                 >
                     <div className="bg-card rounded-[4px] shadow-xl overflow-hidden relative h-full">
-                        {/* Low Res Placeholder (Blur) */}
-                        <Image
-                            src={lowResBackdropUrl || posterUrl}
-                            alt={title}
-                            fill
-                            className="object-cover blur-sm scale-105"
-                            sizes="240px"
-                        />
-
                         {/* High Res Backdrop - Full Cover */}
                         <Image
                             src={backdropUrl || posterUrl}
@@ -127,7 +114,7 @@ export function MovieCard({ movie }: MovieCardProps) {
                             fill
                             className="object-cover transition-opacity duration-300 opacity-0"
                             onLoad={(e) => e.currentTarget.classList.remove('opacity-0')}
-                            sizes="240px"
+                            sizes="(max-width: 768px) 100vw, 600px"
                         />
 
                         {/* Gradient Overlay - Stronger at bottom for text readability */}

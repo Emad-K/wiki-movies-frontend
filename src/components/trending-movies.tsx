@@ -10,6 +10,7 @@ export function TrendingMovies() {
   const [movies, setMovies] = useState<TMDBTrendingMovie[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hoveredMovieId, setHoveredMovieId] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchTrending = async () => {
@@ -61,7 +62,18 @@ export function TrendingMovies() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
       {movies.slice(0, 24).map((movie) => (
-        <MovieCard key={movie.id} movie={movie} />
+        <MovieCard
+          key={movie.id}
+          movie={movie}
+          isHovered={hoveredMovieId === movie.id}
+          onHover={(isHovered) => {
+            if (isHovered) {
+              setHoveredMovieId(movie.id)
+            } else {
+              setHoveredMovieId((prev) => (prev === movie.id ? null : prev))
+            }
+          }}
+        />
       ))}
     </div>
   )
