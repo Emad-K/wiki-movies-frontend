@@ -18,6 +18,7 @@ export interface TMDBSearchResult {
   media_type?: string
   release_date?: string
   first_air_date?: string
+  last_air_date?: string
   vote_average?: number
   vote_count?: number
   popularity?: number
@@ -25,6 +26,15 @@ export interface TMDBSearchResult {
   original_language?: string
   genre_ids?: number[]
   adult?: boolean
+  // TV show specific fields
+  episode_run_time?: number[]
+  status?: string
+  content_ratings?: {
+    results: Array<{
+      iso_3166_1: string
+      rating: string
+    }>
+  }
 }
 
 /**

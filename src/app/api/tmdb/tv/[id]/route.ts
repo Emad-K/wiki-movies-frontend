@@ -9,7 +9,7 @@ export async function GET(
         const { id } = await params;
 
         const response = await fetch(
-            `https://api.themoviedb.org/3/tv/${id}?api_key=${env.TMDB_API_KEY}&append_to_response=credits,videos,images,similar,watch/providers`,
+            `https://api.themoviedb.org/3/tv/${id}?api_key=${env.TMDB_API_KEY}&append_to_response=credits,videos,images,similar,content_ratings`,
             {
                 next: { revalidate: 3600 }, // Cache for 1 hour
             }

@@ -207,10 +207,20 @@ export interface TMDBTrendingMovie {
   popularity: number;
   release_date?: string;
   first_air_date?: string;
+  last_air_date?: string;
   video?: boolean;
   vote_average: number;
   vote_count: number;
   origin_country?: string[];
+  // TV show specific fields
+  episode_run_time?: number[];
+  status?: string;
+  content_ratings?: {
+    results: Array<{
+      iso_3166_1: string;
+      rating: string;
+    }>
+  };
 }
 
 export interface TMDBTrendingResponse {

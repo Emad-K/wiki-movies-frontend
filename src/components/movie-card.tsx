@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { getTMDBPosterUrl, getTMDBBackdropUrl } from "@/lib/tmdb"
@@ -16,10 +16,20 @@ export interface MovieCardProps {
         media_type?: string
         release_date?: string
         first_air_date?: string
+        last_air_date?: string
         vote_average?: number
         vote_count?: number
         overview?: string
         genre_ids?: number[]
+        // TV show specific fields
+        episode_run_time?: number[]
+        status?: string
+        content_ratings?: {
+            results: Array<{
+                iso_3166_1: string
+                rating: string
+            }>
+        }
     }
     isHovered?: boolean
     onHover?: (isHovered: boolean) => void
@@ -27,6 +37,29 @@ export interface MovieCardProps {
 
 export function MovieCard({ movie, isHovered = false, onHover }: MovieCardProps) {
     const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null)
+    const [metadata, setMetadata] = useState<{
+        // TV show fields
+        status?: string
+        last_air_date?: string
+        episode_run_time?: number[]
+        number_of_seasons?: number
+        content_ratings?: {
+            results: Array<{
+                iso_3166_1: string
+                rating: string
+            }>
+        }
+        // Movie fields
+        runtime?: number
+        release_dates?: {
+            results: Array<{
+                iso_3166_1: string
+                release_dates: Array<{ certification: string }>
+            }>
+        }
+    } | null>(null)
+    const [isLoadingMetadata, setIsLoadingMetadata] = useState(false)
+    const [metadataFetched, setMetadataFetched] = useState(false)
 
     const posterUrl = getTMDBPosterUrl(movie.poster_path, 'w500')
     // Use w780 for high quality backdrop, w300 for low res placeholder
@@ -39,7 +72,6 @@ export function MovieCard({ movie, isHovered = false, onHover }: MovieCardProps)
     const releaseDate = movie.release_date || movie.first_air_date
     const year = releaseDate ? new Date(releaseDate).getFullYear() : null
     const rating = movie.vote_average ? movie.vote_average.toFixed(1) : null
-    const voteCount = movie.vote_count ? movie.vote_count.toLocaleString() : null
 
     // Get top 3 genres
     const genres = movie.genre_ids
@@ -47,6 +79,110 @@ export function MovieCard({ movie, isHovered = false, onHover }: MovieCardProps)
         .map(id => TMDB_GENRES[id])
         .filter(Boolean)
         .join(" • ")
+
+    // Format year range for TV shows
+    const getYearDisplay = () => {
+        if (movie.media_type === 'tv' && movie.first_air_date) {
+            const startYear = new Date(movie.first_air_date).getFullYear()
+            const data = metadata || movie
+            if (data.status === 'Ended' && data.last_air_date) {
+                const endYear = new Date(data.last_air_date).getFullYear()
+                return startYear === endYear ? `${startYear}` : `${startYear}–${endYear}`
+            }
+            return `${startYear}–`
+        }
+        return year
+    }
+
+    // Format duration for both movies and TV shows
+    const getDuration = () => {
+        if (movie.media_type === 'tv') {
+            const data = metadata || movie
+            if (data.episode_run_time && data.episode_run_time.length > 0) {
+                const avgDuration = data.episode_run_time[0]
+                if (avgDuration >= 60) {
+                    const hours = Math.floor(avgDuration / 60)
+                    const minutes = avgDuration % 60
+                    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
+                }
+                return `${avgDuration}m`
+            }
+        } else if (movie.media_type === 'movie' && metadata?.runtime) {
+            const runtime = metadata.runtime
+            if (runtime >= 60) {
+                const hours = Math.floor(runtime / 60)
+                const minutes = runtime % 60
+                return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
+            }
+            return `${runtime}m`
+        }
+        return null
+    }
+
+    // Get content rating for both movies and TV shows
+    const getContentRating = () => {
+        if (movie.media_type === 'tv') {
+            const data = metadata || movie
+            if (data.content_ratings?.results) {
+                const usRating = data.content_ratings.results.find(r => r.iso_3166_1 === 'US')
+                return usRating?.rating
+            }
+        } else if (movie.media_type === 'movie' && metadata?.release_dates) {
+            const usCertification = metadata.release_dates.results
+                ?.find(r => r.iso_3166_1 === 'US')
+                ?.release_dates?.[0]?.certification
+            return usCertification || null
+        }
+        return null
+    }
+
+    const yearDisplay = getYearDisplay()
+    const duration = getDuration()
+    const contentRating = getContentRating()
+
+    // Fetch metadata on hover for both movies and TV shows
+    useEffect(() => {
+        if (isHovered && !metadataFetched && !isLoadingMetadata) {
+            let isMounted = true
+
+            const fetchMetadata = async () => {
+                try {
+                    setIsLoadingMetadata(true)
+                    const endpoint = movie.media_type === 'tv'
+                        ? `/api/tmdb/tv/${movie.id}`
+                        : `/api/tmdb/movie/${movie.id}`
+
+                    console.log(`Fetching details for ${movie.media_type} ${movie.id}:`, endpoint)
+                    const response = await fetch(endpoint)
+
+                    if (!response.ok) {
+                        console.error(`Failed to fetch details: ${response.status}`)
+                        return
+                    }
+
+                    const data = await response.json()
+                    console.log(`Received details for ${movie.media_type} ${movie.id}:`, data)
+
+                    if (isMounted) {
+                        setMetadata(data)
+                        setMetadataFetched(true)
+                    }
+                } catch (err) {
+                    console.error('Error fetching details:', err)
+                } finally {
+                    if (isMounted) {
+                        setIsLoadingMetadata(false)
+                    }
+                }
+            }
+
+            fetchMetadata()
+
+            return () => {
+                isMounted = false
+            }
+        }
+    }, [isHovered, movie.media_type, movie.id, metadataFetched, isLoadingMetadata])
 
     const handleMouseEnter = () => {
         // Prefetch images immediately on hover
@@ -126,16 +262,19 @@ export function MovieCard({ movie, isHovered = false, onHover }: MovieCardProps)
                             <h3 className="font-bold text-lg line-clamp-1 drop-shadow-md">{title}</h3>
 
                             {/* Metadata Row */}
-                            <div className="flex items-center gap-3 text-xs font-medium text-white/90">
+                            <div className="flex items-center gap-2 text-xs font-medium text-white/90 flex-wrap">
                                 {rating && <span className="text-green-400 font-bold">{rating} Match</span>}
-                                {year && <span>{year}</span>}
+                                {yearDisplay && <span>{yearDisplay}</span>}
+                                {contentRating && (
+                                    <span className="border border-white/40 px-1.5 py-0.5 rounded text-[10px] uppercase bg-black/20 backdrop-blur-sm">
+                                        {contentRating}
+                                    </span>
+                                )}
+                                {duration && <span>{duration}</span>}
                                 {movie.media_type && (
                                     <span className="border border-white/40 px-1.5 py-0.5 rounded text-[10px] uppercase bg-black/20 backdrop-blur-sm">
                                         {movie.media_type === 'movie' ? 'Movie' : 'TV'}
                                     </span>
-                                )}
-                                {voteCount && (
-                                    <span className="text-white/60">({voteCount} votes)</span>
                                 )}
                             </div>
 
