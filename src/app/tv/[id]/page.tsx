@@ -13,6 +13,7 @@ import { ExpandableText } from "@/components/expandable-text"
 import { WatchProvider } from "@/components/watch-provider"
 import { CastList } from "@/components/cast-list"
 import { SimilarMedia } from "@/components/similar-media"
+import { getTVDateRange, shouldShowTVStatus } from "@/lib/media-utils"
 
 interface TVShowDetails {
   id: number
@@ -209,7 +210,7 @@ export default function TVShowDetailPage() {
                         {show.first_air_date && (
                           <div className="flex items-center gap-1.5">
                             <Calendar className="h-4 w-4" />
-                            <span>{new Date(show.first_air_date).getFullYear()}</span>
+                            <span>{getTVDateRange(show.first_air_date, show.last_air_date, show.status)}</span>
                           </div>
                         )}
 
@@ -276,7 +277,7 @@ export default function TVShowDetailPage() {
               </div>
             )}
 
-            {show.status && (
+            {shouldShowTVStatus(show.status) && (
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground mb-1">Status</h3>
                 <p className="text-lg">{show.status}</p>
@@ -288,11 +289,11 @@ export default function TVShowDetailPage() {
               <p className="text-lg">{show.number_of_episodes} Episodes</p>
             </div>
 
-            {show.first_air_date && show.last_air_date && (
+            {show.first_air_date && (
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground mb-1">Aired</h3>
                 <p className="text-lg">
-                  {new Date(show.first_air_date).getFullYear()} - {new Date(show.last_air_date).getFullYear()}
+                  {getTVDateRange(show.first_air_date, show.last_air_date, show.status)}
                 </p>
               </div>
             )}
