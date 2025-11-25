@@ -76,7 +76,15 @@ async function fetchFromTMDB(
         throw error || new Error('No response received from TMDB');
     }
 
-    return response.data.results[0] || null;
+    const result = response.data.results[0] || null;
+
+    // TMDB doesn't include media_type when using specific endpoints (/search/movie or /search/tv)
+    // Add it manually based on which endpoint we used
+    if (result && mediaType && !result.media_type) {
+        result.media_type = mediaType;
+    }
+
+    return result;
 }
 
 export async function POST(request: NextRequest) {

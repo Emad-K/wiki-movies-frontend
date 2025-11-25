@@ -80,9 +80,33 @@ function HydratedMovieCard({
             return
           }
 
-          // TODO: When backend provides TMDB IDs, fetch full details using the ID
-          // For now, we still need to do a search to get the full TMDB data
+          // Backend provided TMDB ID - use it directly for routing
           console.log(`✅ Backend provided TMDB ID ${tmdbId} for "${movie.title}"`)
+
+          // Create minimal TMDB result with backend ID for routing
+          // Still fetch full details to get images, but we have the ID for links
+          const mediaType = movie.fields?.media_type === 'television' ? 'tv' : 'movie'
+          const minimalResult: TMDBSearchResult = {
+            id: tmdbId,
+            media_type: mediaType,
+            title: movie.title,
+            name: movie.title,
+          }
+
+          if (isMounted) {
+            setTmdbData(minimalResult)
+          }
+
+          // Optionally fetch full details in background for images
+          // For now, we'll do the lookup to get poster/backdrop
+          const result = await searchTMDB(movie.title, year, mediaType)
+          if (isMounted && result) {
+            // Merge backend ID with lookup result
+            setTmdbData({ ...result, id: tmdbId })
+          }
+
+          setIsLoading(false)
+          return
         }
 
         // Lookup TMDB data by title and year (temporary until backend provides full TMDB data)
@@ -117,13 +141,15 @@ function HydratedMovieCard({
   }
 
   // Combine SearchHit data with TMDB data
+  // Use TMDB ID for routing to detail pages (not Wikipedia ID)
   const movieData = {
-    id: movie.id,
+    id: tmdbData?.id || 0, // TMDB ID for /movie/:id or /tv/:id routes
     title: tmdbData?.title || movie.title || '',
     name: tmdbData?.name,
     poster_path: tmdbData?.poster_path,
     backdrop_path: tmdbData?.backdrop_path,
-    media_type: tmdbData?.media_type || 'movie',
+    // Use TMDB media_type, fallback to backend media_type (convert 'television' to 'tv')
+    media_type: tmdbData?.media_type || (movie.fields?.media_type === 'television' ? 'tv' : 'movie'),
     release_date: tmdbData?.release_date,
     first_air_date: tmdbData?.first_air_date,
     vote_average: tmdbData?.vote_average,
