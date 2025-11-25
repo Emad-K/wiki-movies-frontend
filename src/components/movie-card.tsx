@@ -192,6 +192,21 @@ export function MovieCard({ movie, isHovered = false, onHover }: MovieCardProps)
             </span>
           </div>
         )}
+
+        {/* Mobile Info Overlay - Only visible on mobile (md:hidden) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-3 md:hidden">
+          <h3 className="font-bold text-sm line-clamp-2 text-white drop-shadow-md mb-1">{title}</h3>
+          <div className="flex items-center gap-2 text-xs text-white/90">
+            {rating && (
+              <div className="flex items-center gap-1">
+                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                <span className="font-bold">{rating}</span>
+                <span className="text-white/60 text-[10px]">({movie.vote_count?.toLocaleString()})</span>
+              </div>
+            )}
+            {getYearDisplay() && <span>{getYearDisplay()}</span>}
+          </div>
+        </div>
       </div>
 
       {/* Expanded Card (Hover State) */}

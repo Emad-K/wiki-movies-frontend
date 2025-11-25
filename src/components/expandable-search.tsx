@@ -89,7 +89,7 @@ export function ExpandableSearch({
             >
                 <div className="flex items-center gap-3 px-4 py-3 bg-background border border-input rounded-full shadow-sm cursor-pointer hover:bg-accent/50 transition-colors group">
                     <Search className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    <span className="text-muted-foreground font-medium min-w-96 group-hover:text-foreground transition-colors">
+                    <span className="text-muted-foreground font-medium sm:min-w-96 group-hover:text-foreground transition-colors">
                         {lastSearchedQuery
                             ? lastSearchedQuery.length > 40
                                 ? `${lastSearchedQuery.slice(0, 40)} ...`
