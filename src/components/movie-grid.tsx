@@ -66,7 +66,28 @@ function HydratedMovieCard({
 
       try {
         setIsLoading(true)
-        const result = await searchTMDB(movie.title, year)
+
+        // TODO: REMOVE - Once backend provides TMDB IDs, this conditional logic won't be needed
+        // Check if we already have a TMDB ID from backend
+        const tmdbId = movie.fields?.tmdb_id
+
+        if (tmdbId !== undefined) {
+          // tmdbId is either a number (has TMDB entry) or null (confirmed no TMDB entry)
+          if (tmdbId === null) {
+            // Confirmed no TMDB entry exists, skip lookup
+            console.log(`⏭️ Skipping TMDB lookup for "${movie.title}" - confirmed no TMDB entry`)
+            setIsLoading(false)
+            return
+          }
+
+          // TODO: When backend provides TMDB IDs, fetch full details using the ID
+          // For now, we still need to do a search to get the full TMDB data
+          console.log(`✅ Backend provided TMDB ID ${tmdbId} for "${movie.title}"`)
+        }
+
+        // Lookup TMDB data by title and year (temporary until backend provides full TMDB data)
+        const mediaType = movie.fields?.media_type === 'television' ? 'tv' : 'movie'
+        const result = await searchTMDB(movie.title, year, mediaType)
 
         if (isMounted && result) {
           setTmdbData(result)
@@ -85,7 +106,7 @@ function HydratedMovieCard({
     return () => {
       isMounted = false
     }
-  }, [movie.title, year])
+  }, [movie.title, movie.fields?.tmdb_id, movie.fields?.media_type, year])
 
   if (isLoading) {
     return (

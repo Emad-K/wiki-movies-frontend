@@ -135,6 +135,9 @@ export interface SearchHitFields {
   rotten_tomatoes_url?: string;
   rotten_tomatoes_score?: number;
   official_website?: string;
+  // TODO: Once backend adds TMDB IDs, this will be populated
+  // undefined = needs TMDB lookup, null = confirmed no TMDB entry, number = TMDB ID
+  tmdb_id?: number | null;
   [key: string]: any;
 }
 

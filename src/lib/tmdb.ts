@@ -40,15 +40,19 @@ export interface TMDBSearchResult {
 /**
  * Search for a movie/TV show on TMDB by title
  * Calls the backend API to keep the TMDB API key secure
+ * 
+ * TODO: REMOVE - Once backend provides TMDB IDs in search results,
+ * this function will no longer be needed for enriching search results
  */
 export async function searchTMDB(
   query: string,
-  year?: number
+  year?: number,
+  mediaType?: 'movie' | 'tv'
 ): Promise<TMDBSearchResult | null> {
   if (!query?.trim()) return null
 
   try {
-    const response = await fetch('/api/tmdb/poster', {
+    const response = await fetch('/api/tmdb/lookup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -56,8 +60,9 @@ export async function searchTMDB(
       body: JSON.stringify({
         query: query.trim(),
         year,
+        media_type: mediaType,
       }),
-      next: { revalidate: 86400 }, // Cache for 24 hours
+      next: { revalidate: 604800 }, // Cache for 7 days (Next.js caching)
     })
 
     if (!response.ok) {

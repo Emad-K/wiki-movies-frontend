@@ -9,7 +9,7 @@ A modern, AI-powered movie search and recommendation application built with Next
 - 🖼️ **Movie Posters**: Automatic poster fetching from TMDB with ratings and vote counts
 - 📊 **Trending Movies**: Weekly trending movies and TV shows on the homepage
 - 🌓 **Dark/Light Mode**: System-aware theme with manual toggle
-- 💾 **Smart Caching**: Drizzle ORM with Neon database for efficient TMDB API caching
+- 💾 **Smart Caching**: Next.js caching for TMDB lookups (7-day cache with stale-while-revalidate)
 - 📱 **Responsive Design**: Works beautifully on desktop, tablet, and mobile
 - ⚡ **Infinite Scroll**: Seamless loading of more results
 - 🔒 **Secure API Proxy**: All API keys kept server-side
