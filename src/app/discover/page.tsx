@@ -1,7 +1,7 @@
 "use client"
 
 import { Navigation } from "@/components/navigation"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MovieGrid } from "@/components/movie-grid"
@@ -16,31 +16,6 @@ export default function DiscoverPage() {
   const [hasMore, setHasMore] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const scrollObserverRef = useRef<HTMLDivElement>(null)
-
-  // Infinite scroll observer
-  useEffect(() => {
-    if (!hasSearched || !hasMore || isLoadingMore) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-          loadMoreResults()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    const currentRef = scrollObserverRef.current
-    if (currentRef) {
-      observer.observe(currentRef)
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef)
-      }
-    }
-  }, [hasSearched, currentOffset, hasMore, isLoadingMore])
 
   const performSearch = async (searchQuery: string, offset: number = 0, append: boolean = false) => {
     if (append) {
@@ -69,13 +44,13 @@ export default function DiscoverPage() {
 
       const data = await response.json()
       const newMovies = data.hits || []
-      
+
       if (append) {
         setSearchResults((prev) => [...prev, ...newMovies])
       } else {
         setSearchResults(newMovies)
       }
-      
+
       setHasMore(newMovies.length === 20)
       setCurrentOffset(offset + 20)
     } catch (error) {
@@ -89,6 +64,37 @@ export default function DiscoverPage() {
     }
   }
 
+  const loadMoreResults = useCallback(() => {
+    if (query.trim() && hasMore && !isLoadingMore) {
+      performSearch(query, currentOffset, true)
+    }
+  }, [query, hasMore, isLoadingMore, currentOffset])
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!hasSearched || !hasMore || isLoadingMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMoreResults()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentRef = scrollObserverRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [hasSearched, currentOffset, hasMore, isLoadingMore, loadMoreResults])
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!query.trim()) return
@@ -97,12 +103,6 @@ export default function DiscoverPage() {
     setCurrentOffset(0)
     setHasMore(false)
     await performSearch(query, 0, false)
-  }
-
-  const loadMoreResults = () => {
-    if (query.trim() && hasMore && !isLoadingMore) {
-      performSearch(query, currentOffset, true)
-    }
   }
 
   return (
@@ -115,7 +115,7 @@ export default function DiscoverPage() {
               Discover Movies
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
-              Describe what you're looking for in natural language
+              Describe what you&apos;re looking for in natural language
             </p>
           </div>
 
@@ -157,7 +157,7 @@ export default function DiscoverPage() {
                   Search Results
                 </h2>
                 <MovieGrid movies={searchResults} />
-                
+
                 {/* Infinite scroll trigger */}
                 <div ref={scrollObserverRef} className="h-20 flex items-center justify-center mt-8">
                   {isLoadingMore && (
@@ -167,7 +167,7 @@ export default function DiscoverPage() {
                     </div>
                   )}
                   {!hasMore && !isLoadingMore && searchResults.length > 0 && (
-                    <p className="text-sm text-muted-foreground">That's all the results!</p>
+                    <p className="text-sm text-muted-foreground">That&apos;s all the results!</p>
                   )}
                 </div>
               </>

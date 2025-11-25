@@ -180,13 +180,13 @@ export function MovieSearch({ mode, title, description }: MovieSearchProps) {
 
       const data = await response.json()
       const newMovies = data.hits || []
-      
+
       if (append) {
         setSearchResults((prev) => [...prev, ...newMovies])
       } else {
         setSearchResults(newMovies)
       }
-      
+
       // Check if there are more movies to load
       setHasMore(newMovies.length === 20)
       setCurrentOffset(offset + 20)
@@ -320,7 +320,7 @@ export function MovieSearch({ mode, title, description }: MovieSearchProps) {
               </span>
             </div>
             <MovieGrid movies={moviesToDisplay} />
-            
+
             {/* Infinite scroll trigger */}
             {selectedMovie && (
               <div ref={scrollObserverRef} className="h-20 flex items-center justify-center mt-8">
@@ -331,7 +331,7 @@ export function MovieSearch({ mode, title, description }: MovieSearchProps) {
                   </div>
                 )}
                 {!hasMore && !isLoadingMore && searchResults.length > 0 && (
-                  <p className="text-sm text-muted-foreground">That's all the results!</p>
+                  <p className="text-sm text-muted-foreground">That&apos;s all the results!</p>
                 )}
               </div>
             )}

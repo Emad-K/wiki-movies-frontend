@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Send, SlidersHorizontal, Menu, X, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,7 @@ interface ChatInterfaceProps {
 export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
-  
+
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -61,16 +61,16 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
 
   // Get active filters as a formatted string
   const getActiveFiltersText = (): string => {
-    const activeFilters = Object.entries(filters).filter(([_, value]) => value)
+    const activeFilters = Object.entries(filters).filter(([, value]) => value)
     if (activeFilters.length === 0) return ''
-    
+
     return activeFilters
       .map(([key, value]) => `${formatFilterName(key)}: ${value}`)
       .join(', ')
   }
 
   // Update URL with query and filters
-  const updateUrlParams = (query: string, currentFilters: Record<string, string>) => {
+  const updateUrlParams = useCallback((query: string, currentFilters: Record<string, string>) => {
     const params = new URLSearchParams()
     if (query) {
       params.set('q', query)
@@ -81,9 +81,9 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
       }
     })
     router.replace(`/search?${params.toString()}`, { scroll: false })
-  }
+  }, [router])
 
-  const handleSearch = async (query: string, offset: number = 0, append: boolean = false, replace: boolean = false) => {
+  const handleSearch = useCallback(async (query: string, offset: number = 0, append: boolean = false, replace: boolean = false) => {
     if (!query.trim()) return
 
     // Prevent duplicate searches - if a search for this query is already in progress, skip
@@ -125,7 +125,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
 
     try {
       const filterArray = Object.entries(filters)
-        .filter(([_, value]) => value)
+        .filter(([, value]) => value)
         .map(([field, value]) => ({ field, value: [value] }))
 
       const response = await fetch("/api/search", {
@@ -200,13 +200,13 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
       }
     } catch (error) {
       console.error("Search error:", error)
-      
+
       // Show error message for new searches, not pagination or replace
       if (!append && !replace) {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: "assistant",
-          content: error instanceof Error 
+          content: error instanceof Error
             ? `Error: ${error.message}. Please check if the server is running and try again.`
             : "Sorry, there was an error searching for movies. Please try again.",
         }
@@ -223,7 +223,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
         activeSearchRef.current = null
       }
     }
-  }
+  }, [filters, updateUrlParams])
 
   useEffect(() => {
     scrollToBottom()
@@ -236,20 +236,20 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
       return
     }
     hasInitialized.current = true
-    
+
     const queryFromUrl = searchParams.get('q')
     const filtersFromUrl: Record<string, string> = {}
-    
+
     // Parse filters from URL
     searchParams.forEach((value, key) => {
       if (key !== 'q' && value) {
         filtersFromUrl[key] = value
       }
     })
-    
+
     // Set filters first, but mark that we're initializing so the filters useEffect won't trigger a search
     setFilters(filtersFromUrl)
-    
+
     if (queryFromUrl) {
       handleSearch(queryFromUrl)
     } else if (initialQuery) {
@@ -264,7 +264,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
     if (!hasInitialized.current) {
       return
     }
-    
+
     if (currentQuery) {
       updateUrlParams(currentQuery, filters)
       // Use replace mode to update existing results instead of adding new messages
@@ -296,7 +296,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
         observer.unobserve(currentRef)
       }
     }
-  }, [currentQuery, currentOffset, hasMore, isLoadingMore])
+  }, [currentQuery, currentOffset, hasMore, isLoadingMore, handleSearch])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -430,7 +430,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
                             <div className="text-sm">
                               <p className="font-semibold mb-1">Active Filters:</p>
                               {Object.entries(filters)
-                                .filter(([_, value]) => value)
+                                .filter(([, value]) => value)
                                 .map(([key, value]) => (
                                   <p key={key} className="text-xs">
                                     {formatFilterName(key)}: {value}
@@ -444,7 +444,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
                     <MovieGrid movies={message.movies || []} />
                   </div>
                 ))}
-              
+
               {/* Infinite scroll trigger */}
               {currentQuery && (
                 <div ref={scrollObserverRef} className="h-20 flex items-center justify-center">
@@ -455,7 +455,7 @@ export function ChatInterface({ initialQuery = "" }: ChatInterfaceProps) {
                     </div>
                   )}
                   {!hasMore && messages.some(m => m.movies && m.movies.length > 0) && (
-                    <p className="text-sm text-muted-foreground">That's all the results!</p>
+                    <p className="text-sm text-muted-foreground">That&apos;s all the results!</p>
                   )}
                 </div>
               )}

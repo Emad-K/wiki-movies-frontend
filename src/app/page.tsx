@@ -1,7 +1,7 @@
 "use client"
 
 import { Navigation } from "@/components/navigation"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Loader2 } from "lucide-react"
 import { MovieGrid } from "@/components/movie-grid"
 import { TrendingMovies } from "@/components/trending-movies"
@@ -19,31 +19,6 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const scrollObserverRef = useRef<HTMLDivElement>(null)
-
-  // Infinite scroll observer
-  useEffect(() => {
-    if (!hasSearched || !hasMore || isLoadingMore) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-          loadMoreResults()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    const currentRef = scrollObserverRef.current
-    if (currentRef) {
-      observer.observe(currentRef)
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef)
-      }
-    }
-  }, [hasSearched, currentOffset, hasMore, isLoadingMore])
 
   const performSearch = async (searchQuery: string, offset: number = 0, append: boolean = false) => {
     if (append) {
@@ -93,12 +68,36 @@ export default function Home() {
   }
 
 
-
-  const loadMoreResults = () => {
+  const loadMoreResults = useCallback(() => {
     if (query.trim() && hasMore && !isLoadingMore) {
       performSearch(query, currentOffset, true)
     }
-  }
+  }, [query, hasMore, isLoadingMore, currentOffset])
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (!hasSearched || !hasMore || isLoadingMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMoreResults()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentRef = scrollObserverRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [hasSearched, currentOffset, hasMore, isLoadingMore, loadMoreResults])
 
   return (
     <div className="flex flex-col h-screen">
