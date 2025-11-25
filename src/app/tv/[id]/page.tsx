@@ -12,6 +12,7 @@ import Link from "next/link"
 import { ExpandableText } from "@/components/expandable-text"
 import { WatchProvider } from "@/components/watch-provider"
 import { CastList } from "@/components/cast-list"
+import { SimilarMedia } from "@/components/similar-media"
 
 interface TVShowDetails {
   id: number
@@ -51,6 +52,15 @@ interface TVShowDetails {
         buy?: { provider_id: number; provider_name: string; logo_path: string }[]
       }
     }
+  }
+  similar?: {
+    results: {
+      id: number
+      name: string
+      poster_path: string | null
+      vote_average: number
+      first_air_date: string
+    }[]
   }
 }
 
@@ -325,7 +335,10 @@ export default function TVShowDetailPage() {
             </section>
           )}
 
-
+          {/* Similar Shows */}
+          {show.similar && (
+            <SimilarMedia similar={show.similar} type="tv" />
+          )}
         </div>
       </ScrollArea>
     </div>

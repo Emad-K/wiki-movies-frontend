@@ -12,6 +12,7 @@ import Link from "next/link"
 import { ExpandableText } from "@/components/expandable-text"
 import { WatchProvider } from "@/components/watch-provider"
 import { CastList } from "@/components/cast-list"
+import { SimilarMedia } from "@/components/similar-media"
 
 interface MovieDetails {
     id: number
@@ -48,6 +49,15 @@ interface MovieDetails {
                 buy?: { provider_id: number; provider_name: string; logo_path: string }[]
             }
         }
+    }
+    similar?: {
+        results: {
+            id: number
+            title: string
+            poster_path: string | null
+            vote_average: number
+            release_date: string
+        }[]
     }
 }
 
@@ -346,6 +356,11 @@ export default function MovieDetailPage() {
                                 />
                             </div>
                         </section>
+                    )}
+
+                    {/* Similar Movies */}
+                    {movie.similar && (
+                        <SimilarMedia similar={movie.similar} type="movie" />
                     )}
 
 
